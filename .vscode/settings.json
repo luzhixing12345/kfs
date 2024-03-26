@@ -1,5 +1,0 @@
-{
-    "clangd.fallbackFlags": [
-        "-std=gnu99"
-    ]
-}
