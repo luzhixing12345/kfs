@@ -46,8 +46,10 @@ make
 
 FAST,OSDI,SOSP,ASPLOS,USENIX ATC, EuroSys, SC,SoCC, HotOS, HotStorage, MSST,TC,TOS,TPDS
 
-- 123
-  1. 123
-  2. 123
-
 ## 参考
+
+- [Linux 文件系统(一):抽象](https://www.bilibili.com/video/BV1jM411W7jV)
+- [动手实现一个文件系统,提高自己代码能力,加深对底层的理解,探索自己的就业新可能](https://www.bilibili.com/video/BV1eV411A7gw)
+- [NTFS 是目前最先进的文件系统吗?](https://www.zhihu.com/question/20619659)
+- [libfuse](https://github.com/libfuse/libfuse)
+- [simplefs](https://github.com/sysprog21/simplefs)

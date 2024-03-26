@@ -22,7 +22,7 @@
 *.la
 *.lo
 
-# Shared objects (inc. Windows DLLs)
+# Shared objects
 *.dll
 *.so
 *.so.*
@@ -35,6 +35,7 @@
 *.i*86
 *.x86_64
 *.hex
+mkfs.simplefs
 
 # Debug files
 *.dSYM/
@@ -50,5 +51,8 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+.cache.mk
+*.o.ur-safe
 
-docs/
+# Other
+test.img
