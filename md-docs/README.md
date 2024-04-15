@@ -16,10 +16,9 @@ make
 ```
 
 ## 文档
-
 学习文件系统的评价指标以及测试、跑分方法, 需要测试:
 1. 正确性
-   - fstest https://www.cnblogs.com/xuyaowen/p/pjd-fstest.html
+   - fstest [pjd-fstest The test suite checks POSIX compliance - 测试文件系统posix 接口兼容性](https://www.cnblogs.com/xuyaowen/p/pjd-fstest.html)
    - 这个工具很老,可能有坑
 2. 一般性能指标
    使用IOZone即可
@@ -32,18 +31,18 @@ make
 
 1. FUFE 框架
    评价:性能较差,相关资料较多
-   - https://zhuanlan.zhihu.com/p/59354174
-   - https://cloud.tencent.com/developer/article/1006138
-   - https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/
-   - https://stackoverflow.com/questions/15604191/fuse-detailed-documentation
-   - https://github.com/libfuse/sshfs
+   - [用户态文件系统框架FUSE的介绍及示例](https://zhuanlan.zhihu.com/p/59354174)
+   - [吴锦华 / 明鑫 : 用户态文件系统 ( FUSE ) 框架分析和实战](https://cloud.tencent.com/developer/article/1006138)
+   - [maastaar writing-a-simple-filesystem-using-fuse](https://www.maastaar.net/fuse/linux/filesystem/c/2016/05/21/writing-a-simple-filesystem-using-fuse/)
+   - [fuse detailed documentation](https://stackoverflow.com/questions/15604191/fuse-detailed-documentation)
+   - [sshfs](https://github.com/libfuse/sshfs)
 2. [拦截系统调用](https://github.com/pmem/syscall_intercept) + DirectIO操作裸磁盘
    性能较好,相关资料较少
 3. 全用户态实现+用户态磁盘驱动:spdk框架
    性能最好,有完整框架
 
-   https://spdk.io/cn/articles/
-
+   [spdk articles](https://spdk.io/cn/articles/)
+   
 FAST,OSDI,SOSP,ASPLOS,USENIX ATC, EuroSys, SC,SoCC, HotOS, HotStorage, MSST,TC,TOS,TPDS
 
 ## 参考
