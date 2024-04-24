@@ -58,3 +58,6 @@ dkms.conf
 test.img
 docs/
 .vscode/
+compile_commands.json
+.cache/
+/src/kfs

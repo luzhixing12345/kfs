@@ -12,6 +12,10 @@
 ## 编译运行
 
 ```bash
+sudo apt-get install libfuse2 libfuse-dev
+```
+
+```bash
 make
 ```
 
@@ -53,3 +57,8 @@ FAST,OSDI,SOSP,ASPLOS,USENIX ATC, EuroSys, SC,SoCC, HotOS, HotStorage, MSST,TC,T
 - [NTFS 是目前最先进的文件系统吗?](https://www.zhihu.com/question/20619659)
 - [libfuse](https://github.com/libfuse/libfuse)
 - [simplefs](https://github.com/sysprog21/simplefs)
+- [扒一扒 Linux 文件系统的黑历史](https://zhuanlan.zhihu.com/p/28828826)
+- [fuse-backend-rs](https://github.com/cloud-hypervisor/fuse-backend-rs)
+- [300行代码带你实现一个Linux文件系统](https://zhuanlan.zhihu.com/p/579011810)
+- [动手写一个简单的文件系统](https://www.jianshu.com/p/8966d121263b)
+- [Assignment 11: File system in libfuse](https://course.ccs.neu.edu/cs3650sp22/a11.html)
