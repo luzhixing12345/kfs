@@ -12,10 +12,15 @@
 ## 编译运行
 
 ```bash
+sudo apt-get install libfuse2 libfuse-dev
+```
+
+```bash
 make
 ```
 
 ## 文档
+
 学习文件系统的评价指标以及测试、跑分方法, 需要测试:
 1. 正确性
    - fstest [pjd-fstest The test suite checks POSIX compliance - 测试文件系统posix 接口兼容性](https://www.cnblogs.com/xuyaowen/p/pjd-fstest.html)
@@ -42,13 +47,20 @@ make
    性能最好,有完整框架
 
    [spdk articles](https://spdk.io/cn/articles/)
-   
+
 FAST,OSDI,SOSP,ASPLOS,USENIX ATC, EuroSys, SC,SoCC, HotOS, HotStorage, MSST,TC,TOS,TPDS
 
 ## 参考
 
 - [Linux 文件系统(一):抽象](https://www.bilibili.com/video/BV1jM411W7jV)
 - [动手实现一个文件系统,提高自己代码能力,加深对底层的理解,探索自己的就业新可能](https://www.bilibili.com/video/BV1eV411A7gw)
+  - [好文分享:EXT文件系统机制原理详解](https://www.51cto.com/article/603104.html)
+  - [Project 06: Simple File System](https://www3.nd.edu/~pbui/teaching/cse.30341.fa19/project06.html)
 - [NTFS 是目前最先进的文件系统吗?](https://www.zhihu.com/question/20619659)
 - [libfuse](https://github.com/libfuse/libfuse)
 - [simplefs](https://github.com/sysprog21/simplefs)
+- [扒一扒 Linux 文件系统的黑历史](https://zhuanlan.zhihu.com/p/28828826)
+- [fuse-backend-rs](https://github.com/cloud-hypervisor/fuse-backend-rs)
+- [300行代码带你实现一个Linux文件系统](https://zhuanlan.zhihu.com/p/579011810)
+- [动手写一个简单的文件系统](https://www.jianshu.com/p/8966d121263b)
+- [Assignment 11: File system in libfuse](https://course.ccs.neu.edu/cs3650sp22/a11.html)

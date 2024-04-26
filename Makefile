@@ -16,8 +16,8 @@ SRC_PATH = src
 # 搜索的后缀(.cpp -> .h)
 SRC_EXT = c
 # 头文件
-INCLUDE_PATH = include
-LDFLAGS = -lfuse
+INCLUDE_PATH = #/home/kamilu/cfs/libfuse/include
+LDFLAGS = `pkg-config fuse3 --cflags --libs`
 # 测试文件夹
 TEST_PATH = test
 # 项目名字(库)
@@ -72,6 +72,16 @@ $(SRC_PATH)/commands/hash_object.o: $(SRC_PATH)/commands/hash_object.c $(HEADER)
 # Define variables for formatting
 CP_FORMAT = "[cp]\t%-20s -> %s\n"
 MV_FORMAT = "[mv]\t%-20s -> %s\n"
+
+mount:
+	mkdir -p $(TEST_PATH)
+	$(SRC_PATH)/$(TARGET) $(TEST_PATH)
+	@echo "mount success"
+
+umount:
+	umount $(TEST_PATH)
+	rm -rf $(TEST_PATH)
+	@echo "umount success"
 
 test:
 	$(MAKE) clean
