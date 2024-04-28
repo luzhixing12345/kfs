@@ -1,18 +1,19 @@
-BasedOnStyle: Chromium
-Language: Cpp
-MaxEmptyLinesToKeep: 3
-IndentCaseLabels: false
-AllowShortIfStatementsOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-DerivePointerAlignment: false
-PointerAlignment: Right
-SpaceAfterCStyleCast: true
-TabWidth: 4
-UseTab: Never
+BasedOnStyle: Google
 IndentWidth: 4
-BreakBeforeBraces: Linux
-AccessModifierOffset: -4
-ForEachMacros:
-  - 'for_each_set_bit'
-  - 'for_each_set_bit_from'
+AllowShortFunctionsOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 120
+BinPackArguments: false
+BraceWrapping:
+  AfterStruct: true
+  AfterFunction: true
+  AfterClass: true
+  AfterControlStatement: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  BeforeCatch: true
+  BeforeElse: true
+  IndentBraces: true
+SortIncludes: false # 不对头文件名进行排序

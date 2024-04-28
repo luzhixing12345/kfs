@@ -12,7 +12,7 @@
 ## 编译运行
 
 ```bash
-sudo apt-get install libfuse2 libfuse-dev
+sudo apt-get install libfuse3-dev pkg-config
 ```
 
 ```bash
