@@ -59,14 +59,6 @@ $(SRC_PATH)/$(TARGET): $(OBJ)
 CP_FORMAT = "[cp]\t%-20s -> %s\n"
 MV_FORMAT = "[mv]\t%-20s -> %s\n"
 
-mount:
-	@mkdir -p $(TMP_PATH)
-	@$(SRC_PATH)/$(TARGET) $(TMP_PATH)
-
-umount:
-	@umount $(TMP_PATH)
-	@rm -rf $(TMP_PATH)
-
 test:
 	$(MAKE) clean
 	$(MAKE) debug -j4

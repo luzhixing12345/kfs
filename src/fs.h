@@ -3,17 +3,24 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-// 模拟的文件系统结构
-struct kfs {
-    char *files;  // 模拟文件系统中的文件,以字符串形式存储
+#define print_info(...) printf("[KFS INFO] " __VA_ARGS__)
+
+// file or dir
+struct node {
+    char *filename;  // file or directory name
+    char *contents;  // file contents
+    char *path;
+    // int type; // 0 for file,1 for directory
+    mode_t mode;  // The type and permissions of the file or directory
+    uid_t uid;
+    gid_t gid;
+    struct node *parent;     // parent node
+    struct node **children;  // children nodes
+    int child_count;         // numbers of children nodes
+    time_t atime;            // access time
+    time_t mtime;            // modification time
+    time_t ctime;            // state change time
 };
 
-// 定义文件系统中的文件和目录
-struct file_info {
-    const char *name;
-    const mode_t mode;
-    const char *data;
-    size_t size;
-};
 
 struct file_info *get_file_info(const char *name, struct file_info *files);
