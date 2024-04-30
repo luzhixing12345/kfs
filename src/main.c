@@ -30,7 +30,7 @@ int file_num = 0;  // numbers of files and directory
 
 // get filename from path
 char *get_file(const char *path) {
-    print_info("GetFileNamefromPath is called\n");
+    print_info("get_file path = %s\n", path);
     char *filename_temp = strrchr(path, '/');
     // printf("filename: %s\n", filename_temp);
     return strdup(filename_temp + 1);
@@ -52,37 +52,40 @@ const char *find_parent_dir(const char *path) {
 
 // Create a node.
 struct node *create_node(const char *path, mode_t mode, struct node *parent) {
-    print_info("CreateNode is called\n");
+    print_info("create node:\n  path = %s\n  mode = %o\n", path, mode);
     struct node *new_node = (struct node *)malloc(sizeof(struct node));
-    if (strcmp(path, "/"))
-        new_node->filename = get_file(path);
-    else
+    // 如果path是根目录,那么filename为空
+    if (strcmp(path, ROOT) == 0) {
         new_node->filename = "";
+    } else {
+        new_node->filename = get_file(path);
+    }
+
     new_node->path = strdup(path);
     new_node->contents = NULL;
-
     new_node->mode = mode;
-
     new_node->parent = parent;
     new_node->child_count = 0;
 
-    // set time
+    // 获取当前时间
     time_t now = time(NULL);
     struct tm *timeinfo = localtime(&now);
 
-    print_info("see time:%d-%d-%d %d:%d:%d\n",
-               timeinfo->tm_year + 1900,
-               timeinfo->tm_mon + 1,
-               timeinfo->tm_mday,
-               timeinfo->tm_hour,
-               timeinfo->tm_min,
-               timeinfo->tm_sec);
+    print_debug("timeinfo: %d-%d-%d %d:%d:%d\n",
+                timeinfo->tm_year + 1900,
+                timeinfo->tm_mon + 1,
+                timeinfo->tm_mday,
+                timeinfo->tm_hour,
+                timeinfo->tm_min,
+                timeinfo->tm_sec);
 
-    print_info("mktime result: %ld\n", mktime(timeinfo));
-    new_node->atime = mktime(timeinfo);
-    new_node->mtime = mktime(timeinfo);
-    new_node->ctime = mktime(timeinfo);
+    // 将时间转换为时间戳, 同时设置 atime, mtime, ctime
+    time_t timestamp = mktime(timeinfo);
+    new_node->atime = timestamp;
+    new_node->mtime = timestamp;
+    new_node->ctime = timestamp;
 
+    // TODO: mutux lock
     nodes[file_num] = new_node;
     file_num++;
     if ((mode & S_IFMT) == S_IFDIR)
@@ -127,22 +130,19 @@ void print_node(struct node *node) {
 
 // Find nodes from nodes
 struct node *find_node(const char *path) {
-    print_info("FindNode is called,tring to find %s\n", path);
-    printf("-----------file_num--------------=%d\n", file_num);
+    print_info("try to find node [%s]\n", path);
     for (int i = 0; i < file_num; i++) {
-        printf("i=%d,nodes[%d]->path=%s\n", i, i, nodes[i]->path);
         if (!strcmp(nodes[i]->path, path)) {
-            printf("Lookup successed, %s was found.\n", nodes[i]->path);
-            // PrintNode(nodes[i]);
+            print_info("[%s] node found\n", path);
             return nodes[i];
         }
     }
-    printf("Lookup failed, %s does not exist in the file system.\n", path);
+    print_info("[%s] node not found\n", path);
     return NULL;
 }
 
 // Find the names of all child nodes of parent
-void FindChild(struct node *parent, char **child_names) {
+void find_child(struct node *parent, char **child_names) {
     print_info("FindChild is called\n");
     if (parent->child_count == 0) {
         printf("path %s has no child\n", parent->path);
@@ -250,8 +250,10 @@ struct node *DeserializeNode(FILE *fp) {
 // Initialize the filesystem
 void *kfs_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
     print_info("init\n");
-    cfg->kernel_cache = 1; // 启用内核缓存
-    nodes[0] = create_node("/", S_IFDIR | 0775, NULL);
+    cfg->kernel_cache = 1;  // 启用内核缓存
+    mode_t umask_val = umask(0);
+    mode_t mode = S_IFDIR | (RWX & ~umask_val);
+    nodes[0] = create_node("/", mode, NULL);
     return NULL;
 }
 
@@ -261,6 +263,22 @@ int kfs_mknod(const char *path, mode_t mode, dev_t rdev) {
     // struct options nod;
     // nod.filename=strdup("new_file");
     // options_list[0]=nod;
+    return 0;
+}
+
+int kfs_access(const char *path, int mask) {
+    print_info("kfs_access path = %s\n", path);
+    struct node *node = find_node(path);
+    if (node == NULL) {
+        return -ENOENT;
+    }
+
+    // if the user is not root, check if the user has read permission
+    if (mask & R_OK) {
+        if ((node->mode & S_IRUSR) == 0) {
+            return -EACCES;
+        }
+    }
     return 0;
 }
 
@@ -274,13 +292,13 @@ int kfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // create node
     struct node *new_node = create_node(path, mode, parent);
 
-    printf("kfs_create: parent is %s.Print parent before add children.\n", parent->path);
-    print_node(parent);
+    // printf("kfs_create: parent is %s.Print parent before add children.\n", parent->path);
+    // print_node(parent);
     // Add child nodes to parent
     parent->children[parent->child_count] = new_node;
     parent->child_count++;
-    printf("kfs_create: parent is %s.Print parent after add children.\n", parent->path);
-    print_node(parent);
+    // printf("kfs_create: parent is %s.Print parent after add children.\n", parent->path);
+    // print_node(parent);
     return 0;
 }
 
@@ -347,7 +365,7 @@ int kfs_write(const char *path, const char *buf, size_t len, off_t offset, struc
     return len;
 }
 
-int kfs_truncate(const char *path, off_t length) {
+int kfs_truncate(const char *path, off_t length, struct fuse_file_info *fi) {
     print_info("kfs_truncate path = %s\n", path);
     struct node *target_node = find_node(path);
     target_node->contents = realloc(target_node->contents, length);
@@ -359,15 +377,10 @@ int kfs_truncate(const char *path, off_t length) {
 // Get file properties
 static int kfs_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     // fprintf(stderr, "kfs_getattr path = %s\n", path);
-
+    print_info("kfs_getattr path = %s\n", path);
     struct node *target_node = find_node(path);
-    // PrintNode(target_node);
-    if (find_node(path) == NULL) {
-        printf("kfs_getattr failed,path=%s\n", path);
-        return -ENOENT;
-    } else {
-        printf("kfs_getattr succeed,path=%s\n", path);
 
+    if (target_node) {
         if (target_node->contents != NULL)
             stbuf->st_size = strlen(target_node->contents);
         else
@@ -378,6 +391,8 @@ static int kfs_getattr(const char *path, struct stat *stbuf, struct fuse_file_in
         stbuf->st_mtime = target_node->mtime;
         stbuf->st_ctime = target_node->ctime;
         return 0;
+    } else {
+        return -ENOENT;
     }
 }
 
@@ -420,7 +435,7 @@ static int kfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
     char **child_names = (char **)malloc(MAX_CHILDREN * sizeof(char *));
     printf("before findchild\n");
     print_node(parent);
-    FindChild(parent, child_names);
+    find_child(parent, child_names);
     for (int i = 0; i < parent->child_count; i++) {
         printf("child_names[%d]=%s\n", i, child_names[i]);
         filler(buf, child_names[i], NULL, 0, 0);
@@ -435,6 +450,9 @@ static int kfs_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_
 // temporarily useless
 int kfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi) {
     print_info("kfs_utimens path = %s\n", path);
+    struct node *target_node = find_node(path);
+    target_node->atime = tv[0].tv_sec;
+    target_node->mtime = tv[1].tv_sec;
     return 0;
 }
 
@@ -512,7 +530,7 @@ int kfs_rmdir(const char *path) {
     parent->child_count--;
     // remove children node
     char **child_names = (char **)malloc(MAX_CHILDREN * sizeof(char *));
-    FindChild(node_to_delete, child_names);
+    find_child(node_to_delete, child_names);
     for (int k = 0; k < node_to_delete->child_count; k++) {
         struct node *child = find_node(child_names[k]);
         if ((child->mode & S_IFMT) == S_IFDIR) {
@@ -576,22 +594,100 @@ int kfs_rename(const char *old_path, const char *new_path, unsigned int flags) {
     return ret;
 }
 
+int kfs_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) {
+    print_info("kfs_chown path = %s\n", path);
+    return 0;
+}
+
+int kfs_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    print_info("kfs_chmod path = %s\n", path);
+    return 0;
+}
+
+int kfs_statfs(const char *path, struct statvfs *stbuf) {
+    print_info("kfs_statfs path = %s\n", path);
+    return 0;
+}
+
+int kfs_readlink(const char *path, char *buf, size_t size) {
+    print_info("kfs_readlink path = %s\n", path);
+    return 0;
+}
+
+int kfs_symlink(const char *from, const char *to) {
+    print_info("kfs_symlink from = %s, to = %s\n", from, to);
+    return 0;
+}
+
+int kfs_getdirs(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+    print_info("kfs_getdirs path = %s\n", path);
+    return 0;
+}
+
+int kfs_link(const char *from, const char *to) {
+    print_info("kfs_link from = %s, to = %s\n", from, to);
+    return 0;
+}
+
+int kfs_flush(const char *path, struct fuse_file_info *fi) {
+    print_info("kfs_flush path = %s\n", path);
+    // if fi->fh != 0, it means that the file is opened
+    // then close the file and free the memory
+    if (fi->fh != 0) {
+        struct node *target_node = (struct node *)fi->fh;
+        if (target_node->contents) {
+            free(target_node->contents);
+        }
+        target_node->contents = NULL;
+        return 0;
+    }
+    return 0;
+}
+
+ssize_t kfs_cp_range(const char *path_in, struct fuse_file_info *fi_in, off_t offset_in, const char *path_out,
+                     struct fuse_file_info *fi_out, off_t offset_out, size_t size, int flags) {
+    print_info("kfs_copy_file_range");
+    return 0;
+}
+
+off_t kfs_lseek(const char *path, off_t offset, int whence, struct fuse_file_info *fi) {
+    print_info("kfs_lseek path = %s\n", path);
+    return 0;
+}
+
+int kfs_poll(const char *path, struct fuse_file_info *fi, struct fuse_pollhandle *ph, unsigned *reventsp) {
+    print_info("kfs_poll path = %s\n", path);
+    return 0;
+}
+
 static const struct fuse_operations kfs_op = {
-    .init = kfs_init,        // 初始化文件系统
-    .mknod = kfs_mknod,      // 创建文件或目录节点
-    .create = kfs_create,    // 创建文件
-    .mkdir = kfs_mkdir,      // 创建目录
-    .open = kfs_open,        // 打开文件
-    .write = kfs_write,      // 写入文件
-    .release = kfs_release,  // 文件释放或关闭
-    .getattr = kfs_getattr,  // 获取文件属性
-    .utimens = kfs_utimens,  // 修改文件的时间戳
-    .readdir = kfs_readdir,  // 读取目录内容
-    .read = kfs_read,        // 读取文件
-    .unlink = kfs_unlink,    // 删除文件
-    .rmdir = kfs_rmdir,      // 删除目录
-    .destroy = kfs_destroy,  // 文件系统销毁
-    .rename = kfs_rename,    // 重命名文件或目录
+    .init = kfs_init,                 // 初始化文件系统
+    .access = kfs_access,             // 访问文件
+    .mknod = kfs_mknod,               // 创建文件或目录节点
+    .create = kfs_create,             // 创建文件
+    .mkdir = kfs_mkdir,               // 创建目录
+    .open = kfs_open,                 // 打开文件
+    .write = kfs_write,               // 写入文件
+    .release = kfs_release,           // 文件释放或关闭
+    .getattr = kfs_getattr,           // 获取文件属性
+    .utimens = kfs_utimens,           // 修改文件的时间戳
+    .readdir = kfs_readdir,           // 读取目录内容
+    .read = kfs_read,                 // 读取文件
+    .unlink = kfs_unlink,             // 删除文件
+    .rmdir = kfs_rmdir,               // 删除目录
+    .destroy = kfs_destroy,           // 文件系统销毁
+    .rename = kfs_rename,             // 重命名文件或目录
+    .truncate = kfs_truncate,         // 修改文件大小
+    .chown = kfs_chown,               // 修改文件的拥有者和拥有组
+    .chmod = kfs_chmod,               // 修改文件的权限
+    .statfs = kfs_statfs,             // 获取文件系统信息
+    .readlink = kfs_readlink,         // 读取符号链接的目标路径
+    .symlink = kfs_symlink,           // 创建符号链接
+    .link = kfs_link,                 // 创建硬链接
+    .flush = kfs_flush,               // 文件刷新
+    .copy_file_range = kfs_cp_range,  // 拷贝文件范围
+    .lseek = kfs_lseek,               // 移动文件指针
+    .poll = kfs_poll                  // 监控文件
 };
 
 int main(int argc, char *argv[]) {

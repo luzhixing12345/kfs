@@ -149,8 +149,21 @@ struct fuse_operations {
 };
 ```
 
+LOOPUP (getattr)
+
+CREATE (create)
+
+(getattr)
+
+FLUSH (flush)
+
+SETATTR (utimens)
+
+getattr[NULL]
+
 ## 参考
 
 - [libfuse](https://github.com/libfuse/libfuse)
 - [5分钟搞懂用户空间文件系统FUSE工作原理](https://zhuanlan.zhihu.com/p/106719192)
 - [FUSE的使用及示例](https://zhoubofsy.github.io/2017/01/13/linux/filesystem-userspace-usage/)
+- [u_fs](https://github.com/Tan-Cc/u_fs)

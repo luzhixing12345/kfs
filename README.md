@@ -64,3 +64,5 @@ FAST,OSDI,SOSP,ASPLOS,USENIX ATC, EuroSys, SC,SoCC, HotOS, HotStorage, MSST,TC,T
 - [300行代码带你实现一个Linux文件系统](https://zhuanlan.zhihu.com/p/579011810)
 - [动手写一个简单的文件系统](https://www.jianshu.com/p/8966d121263b)
 - [Assignment 11: File system in libfuse](https://course.ccs.neu.edu/cs3650sp22/a11.html)
+- [文件系统](https://realwujing.github.io/linux/kernel/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/)
+- [星星说编程](https://space.bilibili.com/50657960/channel/series)
