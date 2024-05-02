@@ -167,3 +167,7 @@ getattr[NULL]
 - [5分钟搞懂用户空间文件系统FUSE工作原理](https://zhuanlan.zhihu.com/p/106719192)
 - [FUSE的使用及示例](https://zhoubofsy.github.io/2017/01/13/linux/filesystem-userspace-usage/)
 - [u_fs](https://github.com/Tan-Cc/u_fs)
+- [ext4fuse](https://github.com/gerard/ext4fuse)
+- [fuse-ext2](https://github.com/alperakcan/fuse-ext2)
+- [FAT 和 UNIX 文件系统 (磁盘上的数据结构) [南京大学2023操作系统-P28] (蒋炎岩)](https://www.bilibili.com/video/BV1xN411C74V/)
+- [14.ext2文件系统](https://www.bilibili.com/video/BV1V84y1A7or/)
