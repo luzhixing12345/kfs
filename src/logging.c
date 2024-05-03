@@ -40,6 +40,7 @@ void __LOG(int level, const char *func, int line, const char *format, ...) {
     /* We have a lock here so different threads don interleave the log output */
     pthread_mutex_lock(&lock);
     va_start(ap, format);
+    printf("%s[%s:%d]", loglevel_str[level], func, line);
     fprintf(logfile, "%s[%s:%d] ", loglevel_str[level], func, line);
     vfprintf(logfile, format, ap);
     fprintf(logfile, "\n");

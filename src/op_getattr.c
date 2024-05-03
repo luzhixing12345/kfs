@@ -20,8 +20,8 @@ int op_getattr(const char *path, struct stat *stbuf) {
 
     DEBUG("getattr(%s)", path);
 
-    memset(stbuf, 0, sizeof(struct stat));
-    ret = inode_get_by_path(path, &inode);
+    memset(stbuf, 0, sizeof(struct stat));  // clear the struct
+    ret = inode_get_by_path(path, &inode);  // get the inode by file path
 
     if (ret < 0) {
         return ret;
@@ -29,7 +29,10 @@ int op_getattr(const char *path, struct stat *stbuf) {
 
     DEBUG("getattr done");
 
-    stbuf->st_mode = inode.i_mode & ~0222;
+    // get umask
+    mode_t umask_val = umask(0);
+
+    stbuf->st_mode = inode.i_mode & ~umask_val;
     stbuf->st_nlink = inode.i_links_count;
     stbuf->st_size = inode_get_size(&inode);
     stbuf->st_blocks = inode.i_blocks_lo;

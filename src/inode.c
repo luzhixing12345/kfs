@@ -33,6 +33,9 @@
 #define ROOT_INODE_N                2
 #define IS_PATH_SEPARATOR(__c)      ((__c) == '/')
 
+uint64_t inode_get_size(struct ext4_inode *inode) {
+    return ((uint64_t)inode->i_size_high << 32) | inode->i_size_lo;
+}
 
 static uint32_t __inode_get_data_pblock_ind(uint32_t lblock, uint32_t index_block)
 {

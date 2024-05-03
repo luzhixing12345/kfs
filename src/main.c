@@ -35,12 +35,12 @@
 #endif
 
 static struct fuse_operations e4f_ops = {
+    .init = op_init,
     .getattr = op_getattr,
     .readdir = op_readdir,
     .open = op_open,
     .read = op_read,
     .readlink = op_readlink,
-    .init = op_init,
 };
 
 static struct e4f {
@@ -127,6 +127,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    // Check if the disk is an ext4 filesystem
     if (disk_magic != 0xEF53) {
         fprintf(stderr, "Partition doesn't contain EXT4 filesystem\n");
         return EXIT_FAILURE;

@@ -11,12 +11,41 @@
 
 ## 编译运行
 
+安装依赖
+
 ```bash
 sudo apt-get install libfuse3-dev pkg-config
 ```
 
+编译
+
 ```bash
 make
+```
+
+创建 `test.img` 文件(50 MiB), 格式化为 ext4 格式并挂载为本地 loop 设备
+
+```bash
+dd if=/dev/zero of=test.img bs=1M count=50
+mkfs.ext4 test.img
+sudo mount -o loop -t ext4 test.img tmp
+```
+
+此时可以使用 dmesg 查看 kernel 信息, 找到对应的挂载设备名
+
+```bash
+[128640.689350] loop0: detected capacity change from 0 to 102400
+[128640.707202] EXT4-fs (loop0): mounted filesystem with ordered data mode. Opts: (null). Quota mode: none.
+```
+
+```bash
+./src/kfs loop0 log.txt
+```
+
+卸载
+
+```bash
+sudo umount tmp
 ```
 
 ## 文档
