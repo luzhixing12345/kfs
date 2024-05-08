@@ -8,6 +8,10 @@ SRC_EXT = c
 THIRD_LIB = fuse3
 
 CFLAGS = -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
+
+# 使用 GNU C 扩展语法, __FILE__ 和 __LINE__ 变量
+CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
+
 CFLAGS += $(shell pkg-config --cflags $(THIRD_LIB))
 LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))
 
@@ -24,11 +28,10 @@ rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
 SRC = $(call rwildcard, $(SRC_PATH), %.$(SRC_EXT))
 OBJ = $(SRC:.$(SRC_EXT)=.o)
 
-# THIRD_LIB = $(call rwildcard, $(INCLUDE_PATH), %.$(SRC_EXT))
-# THIRD_LIB_OBJ = $(THIRD_LIB:c=o)
+DEBUG_LEVEL = 3
 
 ifeq ($(MAKECMDGOALS),debug)
-CFLAGS+=-g
+CFLAGS+=-g$(DEBUG_LEVEL)
 endif
 
 all: $(SRC_PATH)/$(TARGET)
