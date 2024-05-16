@@ -26,12 +26,12 @@ make
 创建 `test.img` 文件(50 MiB), 格式化为 ext4 格式
 
 ```bash
-dd if=/dev/zero of=test.img bs=1M count=50
-mkfs.ext4 test.img
+dd if=/dev/zero of=disk.img bs=1M count=50
+mkfs.ext4 disk.img
 ```
 
 ```bash
-./src/kfs test.img tmp/ -d -o logfile=/dev/stdout
+./src/kfs disk.img tmp/ -d -o logfile=/dev/stdout
 ```
 
 可以进入 tmp/ 目录下进行操作, 例如创建/打开/读取/修改文件等等, 最后所有的操作都会被保存在 test.img 中

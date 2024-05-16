@@ -3,5 +3,5 @@
 #include "logging.h"
 
 void op_destory(void *data) {
-    DEBUG("op_destory");
+    DEBUG("ext4 fuse fs destory");
 }

@@ -85,11 +85,18 @@ struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name
     return new_entry;
 }
 
-/* Lookup a cache entry for a given file name.  Return value is a struct pointer
+/**
+ * @brief Lookup a cache entry for a given file name.  Return value is a struct pointer
  * that can be used to both obtain the inode number and insert further child
- * entries. */
-/* TODO: Prune entries by using the LRU counter */
+ * entries. 
+ * 
+ * @param parent 
+ * @param name 
+ * @param namelen 
+ * @return struct dcache_entry* if found, NULL otherwise
+ */
 struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name, int namelen) {
+    /* TODO: Prune entries by using the LRU counter */
     if (parent == NULL) {
         parent = &root;
     }
@@ -115,9 +122,6 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
     return NULL;
 }
 
-uint32_t dcache_get_inode(struct dcache_entry *entry) {
-    if (entry)
-        return entry->inode;
-    else
-        return root.inode;
+inline uint32_t dcache_get_inode(struct dcache_entry *entry) {
+    return entry ? entry->inode : root.inode;
 }

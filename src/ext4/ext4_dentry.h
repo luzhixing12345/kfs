@@ -32,11 +32,11 @@
 #define EXT4_NAME_LEN 255
 
 struct ext4_dir_entry_2 {
-    __le32 inode;   /* Inode number */
-    __le16 rec_len; /* Directory entry length */
-    __u8 name_len;  /* Name length */
-    __u8 file_type;
-    char name[EXT4_NAME_LEN]; /* File name */
+    __le32 inode;             /* Inode number: 存储文件的索引节点号 */
+    __le16 rec_len;           /* Directory entry length: 存储目录项的总长度 */
+    __u8 name_len;            /* Name length: 存储文件名的长度 */
+    __u8 file_type;           /* File type: 存储文件类型 */
+    char name[EXT4_NAME_LEN]; /* File name: 存储文件名,最大长度由EXT4_NAME_LEN定义 */
 };
 
 #endif

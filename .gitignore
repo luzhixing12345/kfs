@@ -63,4 +63,4 @@ compile_commands.json
 /src/kfs
 example/
 /a*
-test.img
+*.img

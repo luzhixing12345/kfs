@@ -5,7 +5,7 @@ CC = gcc
 TARGET = kfs
 SRC_PATH = src
 SRC_EXT = c
-THIRD_LIB = fuse
+THIRD_LIB = fuse3
 
 CFLAGS = -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
 
@@ -61,6 +61,9 @@ $(SRC_PATH)/$(TARGET): $(OBJ)
 # Define variables for formatting
 CP_FORMAT = "[cp]\t%-20s -> %s\n"
 MV_FORMAT = "[mv]\t%-20s -> %s\n"
+
+run:
+	./src/kfs disk.img tmp/ -d -o logfile=/dev/stdout
 
 test:
 	$(MAKE) clean
