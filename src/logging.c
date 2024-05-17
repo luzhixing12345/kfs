@@ -25,9 +25,15 @@ static const char *loglevel_str[] = {
     [LOG_INFO] = "info ",
     [LOG_DEBUG] = "debug",
 };
-const static int debug_level = LOG_DEBUG;
+
+#ifndef LOG_LEVEL 
+#define LOG_LEVEL LOG_DEBUG
+#endif
 
 void __LOG(int level, const char *func, int line, const char *format, ...) {
+    if (level > LOG_LEVEL) {
+        return;
+    }
     static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
     va_list ap;
 
@@ -41,11 +47,9 @@ void __LOG(int level, const char *func, int line, const char *format, ...) {
     /* We have a lock here so different threads don interleave the log output */
     pthread_mutex_lock(&lock);
     va_start(ap, format);
-    if (level >= debug_level) {
-        fprintf(logfile, "[%s][%s:%d] ", loglevel_str[level], func, line);
-        vfprintf(logfile, format, ap);
-        fprintf(logfile, "\n");
-    }
+    fprintf(logfile, "[%s][%s:%d] ", loglevel_str[level], func, line);
+    vfprintf(logfile, format, ap);
+    fprintf(logfile, "\n");
     va_end(ap);
     pthread_mutex_unlock(&lock);
 }

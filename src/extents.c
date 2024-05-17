@@ -12,6 +12,9 @@
 #include "disk.h"
 #include "logging.h"
 #include "super.h"
+#include "ext4/ext4_super.h"
+
+extern struct ext4_super_block sb;
 
 /* Calculates the physical block from a given logical block and extent */
 static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock, uint32_t *len) {

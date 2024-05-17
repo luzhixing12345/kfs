@@ -122,6 +122,6 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
     return NULL;
 }
 
-inline uint32_t dcache_get_inode(struct dcache_entry *entry) {
+uint32_t dcache_get_inode(struct dcache_entry *entry) {
     return entry ? entry->inode : root.inode;
 }

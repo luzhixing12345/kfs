@@ -61,6 +61,7 @@
 #define EXT4_EOFBLOCKS_FL 0x00400000    /* Blocks allocated beyond EOF */
 #define EXT4_RESERVED_FL 0x80000000     /* reserved for ext4 lib */
 
+// https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Inode_Table
 struct ext4_inode {
     __le16 i_mode;        /* 文件模式,包括文件类型和文件的访问权限 */
     __le16 i_uid;         /* 文件所有者的低16位用户ID */

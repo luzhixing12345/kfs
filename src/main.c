@@ -40,7 +40,8 @@ static struct fuse_operations e4f_ops = {
     .open = op_open,
     .read = op_read,
     .readlink = op_readlink,
-    .destroy = op_destory
+    .destroy = op_destory,
+    .access = op_access,
 };
 
 static struct e4f {

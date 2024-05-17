@@ -18,6 +18,9 @@
 #include "logging.h"
 #include "ops.h"
 #include "super.h"
+#include "ext4/ext4_super.h"
+
+extern struct ext4_super_block sb;
 
 static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
     uint64_t inode_size = inode_get_size(inode);
@@ -27,7 +30,7 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
         memcpy(buf, inode->i_block, inode_size);
     } else {
         uint64_t pblock = inode_get_data_pblock(inode, 0, NULL);
-        char *block_data = malloc(super_block_size());
+        char *block_data = malloc(EXT4_SUPER_SIZE(sb));
         disk_read_block(pblock, (uint8_t *)block_data);
         strncpy(buf, block_data, bufsize - 1);
         free(block_data);

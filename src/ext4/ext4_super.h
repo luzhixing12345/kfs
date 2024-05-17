@@ -23,16 +23,20 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  *
  */
+#pragma once
 
 #include "ext4_basic.h"
 
+#define BOOT_SECTOR_SIZE 0x400  // boot sector
+
 /*
  * Structure of a blocks group descriptor
+   https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Block_Group_Descriptors
  */
 struct ext4_group_desc {
     __le32 bg_block_bitmap_lo;      /* 块位图的低位块号 */
     __le32 bg_inode_bitmap_lo;      /* 索引节点位图的低位块号 */
-    __le32 bg_inode_table_lo;       /* 索引节点表的低位块号 */
+    __le32 bg_inode_table_lo;       /* inode table的低位块号 */
     __le16 bg_free_blocks_count_lo; /* 空闲块数的低位计数 */
     __le16 bg_free_inodes_count_lo; /* 空闲索引节点数的低位计数 */
     __le16 bg_used_dirs_count_lo;   /* 已使用的目录数的低位计数 */
@@ -42,7 +46,7 @@ struct ext4_group_desc {
     __le16 bg_checksum;             /* 块组描述块的 CRC16 校验和 */
     __le32 bg_block_bitmap_hi;      /* 块位图的高位块号 */
     __le32 bg_inode_bitmap_hi;      /* 索引节点位图的高位块号 */
-    __le32 bg_inode_table_hi;       /* 索引节点表的高位块号 */
+    __le32 bg_inode_table_hi;       /* inode table的高位块号 */
     __le16 bg_free_blocks_count_hi; /* 空闲块数的高位计数 */
     __le16 bg_free_inodes_count_hi; /* 空闲索引节点数的高位计数 */
     __le16 bg_used_dirs_count_hi;   /* 已使用的目录数的高位计数 */
@@ -51,7 +55,26 @@ struct ext4_group_desc {
 };
 
 /*
+ * Macro-instructions used to manage group descriptors
+ */
+#define EXT4_DESC_SIZE_32BIT 32
+#define EXT4_DESC_SIZE_64BIT 64
+#define EXT4_DESC_SIZE(s) (s.s_desc_size)
+#define EXT4_INODE_SIZE(s) (s.s_inode_size)
+#define EXT4_SUPER_SIZE(s) (((uint64_t)1) << (s.s_log_block_size + 10))
+#define EXT4_BLOCKS_PER_GROUP(s) (s.s_blocks_per_group)
+#define EXT4_CLUSTERS_PER_GROUP(s) (s.s_clusters_per_group)
+#define EXT4_DESC_PER_BLOCK(s) (s.s_desc_per_block)
+#define EXT4_INODES_PER_GROUP(s) (s.s_inodes_per_group)
+#define EXT4_DESC_PER_BLOCK_BITS(s) (s.s_desc_per_block_bits)
+
+#define EXT4_SUPER_GROUP_SIZE(s) (BLOCKS2BYTES(s.s_blocks_per_group))
+#define EXT4_BLOCK_COUNT(s) (((uint64_t)s.s_blocks_count_hi<<32) | s.s_blocks_count_lo)
+#define EXT4_N_BLOCK_GROUPS(s) ((EXT4_BLOCK_COUNT(s) + EXT4_BLOCKS_PER_GROUP(s) - 1) / EXT4_BLOCKS_PER_GROUP(s))
+
+/*
  * Structure of the super block
+   https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block
  */
 struct ext4_super_block {
     /*00*/ __le32 s_inodes_count;      /* Inodes count */

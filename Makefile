@@ -28,7 +28,21 @@ rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
 SRC = $(call rwildcard, $(SRC_PATH), %.$(SRC_EXT))
 OBJ = $(SRC:.$(SRC_EXT)=.o)
 
+MKFS = mkfs.ext4
+DUMPFS = dumpe2fs
+
 DEBUG_LEVEL = 3
+
+#define LOG_EMERG   0
+#define LOG_ALERT   1
+#define LOG_CRIT    2
+#define LOG_ERR     3
+#define LOG_WARNING 4
+#define LOG_NOTICE  5
+#define LOG_INFO    6
+#define LOG_DEBUG   7
+LOG_LEVEL = 7
+CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
 
 ifeq ($(MAKECMDGOALS),debug)
 CFLAGS+=-g$(DEBUG_LEVEL)
@@ -62,8 +76,17 @@ $(SRC_PATH)/$(TARGET): $(OBJ)
 CP_FORMAT = "[cp]\t%-20s -> %s\n"
 MV_FORMAT = "[mv]\t%-20s -> %s\n"
 
+DISK_IMG = disk.img
+
+disk:
+	dd if=/dev/zero of=$(DISK_IMG) bs=1M count=1000
+	$(MKFS) $(DISK_IMG)
+
 run:
-	./src/kfs disk.img tmp/ -d -o logfile=/dev/stdout
+	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=/dev/stdout
+
+dump:
+	$(DUMPFS) -f $(DISK_IMG)
 
 test:
 	$(MAKE) clean

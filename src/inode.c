@@ -17,9 +17,12 @@
 
 #include "dcache.h"
 #include "disk.h"
+#include "ext4/ext4_super.h"
 #include "extents.h"
 #include "logging.h"
 #include "super.h"
+
+extern struct ext4_super_block sb;
 
 /* These #defines are only relevant for ext2/3 style block indexing */
 #define ADDRESSES_IN_IND_BLOCK (BLOCK_SIZE / sizeof(uint32_t))
@@ -140,13 +143,11 @@ int inode_get_by_number(uint32_t n, struct ext4_inode *inode) {
         return -ENOENT;
     n--; /* Inode 0 doesn't exist on disk */
 
-    off_t off = super_group_inode_table_offset(n);
-    off += (n % super_inodes_per_group()) * super_inode_size();
-
+    off_t off = get_inode_offset(n);
     /* If on-disk inode is ext3 type, it will be smaller than the struct.  EXT4
      * inodes, on the other hand, are double size, but the struct still doesn't
      * have fields for all of them. */
-    disk_read(off, MIN(super_inode_size(), sizeof(struct ext4_inode)), inode);
+    disk_read(off, MIN(EXT4_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
     return 0;
 }
 
@@ -160,14 +161,16 @@ static uint8_t get_path_token_len(const char *path) {
 
 /**
  * @brief Get the cached inode num object
- * 
- * @param path 
+ *
+ * @param path
  * @return struct dcache_entry* if found, NULL otherwise
  */
 static struct dcache_entry *get_cached_inode_num(const char **path) {
     struct dcache_entry *next = NULL;
     struct dcache_entry *ret;
 
+    // /home/kamilu/kfs/test/0001-sanity-small.sh
+    // |  1 |   2  | 3 |  4 |        5           |
     do {
         if (**path == '/') {
             *path = *path + 1; /* Skip over the slash */
@@ -206,8 +209,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
     struct dcache_entry *dc_entry = get_cached_inode_num(&path);
     inode_idx = dcache_get_inode(dc_entry);
-
-    DEBUG("Looking up after dcache: %s", path);
+    DEBUG("Found inode %d", inode_idx);
 
     do {
         uint32_t offset = 0;
