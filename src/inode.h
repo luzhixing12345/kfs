@@ -6,6 +6,7 @@
 #include "ext4/ext4_dentry.h"
 #include "ext4/ext4_inode.h"
 
+// inode directory context
 struct inode_dir_ctx {
     uint32_t lblock; /* Currently buffered lblock */
     uint8_t buf[];

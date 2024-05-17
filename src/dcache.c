@@ -102,7 +102,7 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
     }
 
     if (!parent->childs) {
-        DEBUG("Looking up %s,%d: Not found (no childs)", name, namelen);
+        DEBUG("Looking up %s: Not found (no childs)", name);
         return NULL;
     }
 

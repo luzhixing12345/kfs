@@ -16,21 +16,12 @@
 
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     INFO("Using FUSE protocol %d.%d", info->proto_major, info->proto_minor);
-    cfg->kernel_cache = 1; // Enable kernel cache
-    if (super_fill() != 0) {
-        ERR("ext4fuse cannot continue");
-        abort();
-    }
+    cfg->kernel_cache = 1;  // Enable kernel cache
 
-    if (super_group_fill() != 0) {
-        ERR("ext4fuse cannot continue");
-        abort();
-    }
-
-    if (inode_init() != 0) {
-        ERR("inode initialization failed")
-        abort();
-    }
+    // Initialize the super block
+    super_fill();        // superblock
+    super_group_fill();  // group descriptors
+    inode_init();        // root inode
 
     return NULL;
 }

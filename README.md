@@ -32,6 +32,7 @@ make disk
 挂载文件系统(默认到 tmp/)目录下
 
 ```bash
+mkdir tmp
 make run
 ```
 

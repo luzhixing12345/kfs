@@ -42,6 +42,8 @@ DEBUG_LEVEL = 3
 #define LOG_INFO    6
 #define LOG_DEBUG   7
 LOG_LEVEL = 7
+LOG_FILE = kfs.log
+# LOG_FILE = /dev/stdout
 CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
 
 ifeq ($(MAKECMDGOALS),debug)
@@ -83,7 +85,8 @@ disk:
 	$(MKFS) $(DISK_IMG)
 
 run:
-	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=/dev/stdout
+	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
+	@echo "log file save in: $(LOG_FILE)"
 
 dump:
 	$(DUMPFS) -f $(DISK_IMG)

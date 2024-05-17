@@ -11,9 +11,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "ops.h"
 #include "inode.h"
 #include "logging.h"
+#include "ops.h"
 
 int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     struct ext4_inode inode;
@@ -31,7 +31,7 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
     DEBUG("getattr done");
 
     // get umask
-    struct fuse_context *cntx=fuse_get_context();
+    struct fuse_context *cntx = fuse_get_context();
     mode_t umask_val = cntx->umask;
 
     stbuf->st_mode = inode.i_mode & ~umask_val;

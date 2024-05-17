@@ -22,7 +22,7 @@ static char *get_printable_name(char *s, struct ext4_dir_entry_2 *entry) {
 
 int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi,
                enum fuse_readdir_flags flags) {
-    DEBUG("readdir");
+    DEBUG("readdir path %s offset %d", path, offset);
 
     UNUSED(fi);
     char name_buf[EXT4_NAME_LEN];

@@ -18,11 +18,6 @@
 struct ext4_super_block sb;
 struct ext4_group_desc *gdesc_table;
 
-/**
- * @brief read super block
- *
- * @return int
- */
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
 
@@ -51,11 +46,7 @@ off_t get_inode_offset(uint32_t inode_num) {
     return off;
 }
 
-/**
- * @brief read GDT
- *
- * @return int
- */
+
 int super_group_fill(void) {
     int group_num = EXT4_N_BLOCK_GROUPS(sb);
     gdesc_table = malloc(sizeof(struct ext4_group_desc) * group_num);

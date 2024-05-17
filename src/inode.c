@@ -35,7 +35,7 @@ extern struct ext4_super_block sb;
 #define ROOT_INODE_N 2  // root inode_num
 #define IS_PATH_SEPARATOR(__c) ((__c) == '/')
 
-uint64_t inode_get_size(struct ext4_inode *inode) {
+inline uint64_t inode_get_size(struct ext4_inode *inode) {
     return ((uint64_t)inode->i_size_high << 32) | inode->i_size_lo;
 }
 
@@ -210,7 +210,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
     struct dcache_entry *dc_entry = get_cached_inode_num(&path);
     inode_idx = dcache_get_inode(dc_entry);
     DEBUG("Found inode %d", inode_idx);
-
+ 
     do {
         uint32_t offset = 0;
         struct ext4_dir_entry_2 *dentry = NULL;
@@ -254,6 +254,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
 }
 
 int inode_get_by_path(const char *path, struct ext4_inode *inode) {
+    // TODO: cache inode
     return inode_get_by_number(inode_get_idx_by_path(path), inode);
 }
 

@@ -16,3 +16,5 @@ BraceWrapping:
   BeforeCatch: true
   BeforeElse: true
   IndentBraces: true
+AlignConsecutiveMacros: AcrossEmptyLinesAndComments
+MaxEmptyLinesToKeep:	1
