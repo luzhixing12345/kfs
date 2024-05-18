@@ -28,6 +28,7 @@
 #include "ext4_basic.h"
 
 #define BOOT_SECTOR_SIZE 0x400  // boot sector
+#define EXT4_S_MAGIC     0xEF53 // ext4 magic number
 
 /*
  * Structure of a blocks group descriptor
@@ -60,8 +61,8 @@ struct ext4_group_desc {
 #define EXT4_DESC_SIZE_32BIT        32
 #define EXT4_DESC_SIZE_64BIT        64
 #define EXT4_DESC_SIZE(s)           (s.s_desc_size)
-#define EXT4_INODE_SIZE(s)          (s.s_inode_size)
-#define EXT4_SUPER_SIZE(s)          (((uint64_t)1) << (s.s_log_block_size + 10))
+#define EXT4_S_INODE_SIZE(s)        (s.s_inode_size)
+#define EXT4_BLOCK_SIZE(s)          (((uint64_t)1) << (s.s_log_block_size + 10))
 #define EXT4_BLOCKS_PER_GROUP(s)    (s.s_blocks_per_group)
 #define EXT4_CLUSTERS_PER_GROUP(s)  (s.s_clusters_per_group)
 #define EXT4_DESC_PER_BLOCK(s)      (s.s_desc_per_block)

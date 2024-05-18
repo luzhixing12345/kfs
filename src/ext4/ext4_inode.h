@@ -123,4 +123,6 @@ struct ext4_inode {
 	__le32	i_projid;	/* Project ID */
 };
 
+#define EXT4_INODE_SIZE(inode)        (((uint64_t)(inode)->i_size_high << 32) | (inode)->i_size_lo)
+
 #endif

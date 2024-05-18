@@ -21,16 +21,16 @@ struct ext4_group_desc *gdesc_table;
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
 
-    INFO("BLOCK SIZE: %i", EXT4_SUPER_SIZE(sb));
+    INFO("BLOCK SIZE: %i", EXT4_BLOCK_SIZE(sb));
     INFO("BLOCK GROUP SIZE: %i", EXT4_SUPER_GROUP_SIZE(sb));
     INFO("N BLOCK GROUPS: %i", EXT4_N_BLOCK_GROUPS(sb));
-    INFO("INODE SIZE: %i", EXT4_INODE_SIZE(sb));
+    INFO("INODE SIZE: %i", EXT4_S_INODE_SIZE(sb));
     INFO("INODES PER GROUP: %i", EXT4_INODES_PER_GROUP(sb));
     INFO("GROUP DESC SIZE: %i", EXT4_DESC_SIZE(sb));
     return 0;
 }
 
-off_t get_inode_offset(uint32_t inode_num) {
+uint64_t get_inode_offset(uint32_t inode_num) {
     // first calculate inode_num in which group
     uint32_t group_idx = inode_num / EXT4_INODES_PER_GROUP(sb);
     ASSERT(group_idx < EXT4_N_BLOCK_GROUPS(sb));
@@ -41,11 +41,10 @@ off_t get_inode_offset(uint32_t inode_num) {
         off = gdesc_table[group_idx].bg_inode_table_hi;
     }
     off = (off << 32) | gdesc_table[group_idx].bg_inode_table_lo;
-    off = BLOCKS2BYTES(off) + (inode_num % EXT4_INODES_PER_GROUP(sb)) * EXT4_INODE_SIZE(sb);
+    off = BLOCKS2BYTES(off) + (inode_num % EXT4_INODES_PER_GROUP(sb)) * EXT4_S_INODE_SIZE(sb);
     DEBUG("inode_num: %u, group_idx: %u, off: %lu", inode_num, group_idx, off);
     return off;
 }
-
 
 int super_group_fill(void) {
     int group_num = EXT4_N_BLOCK_GROUPS(sb);

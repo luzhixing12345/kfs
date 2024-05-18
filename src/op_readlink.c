@@ -14,23 +14,23 @@
 
 #include "common.h"
 #include "disk.h"
+#include "ext4/ext4_super.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
 #include "super.h"
-#include "ext4/ext4_super.h"
 
 extern struct ext4_super_block sb;
 
 static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
-    uint64_t inode_size = inode_get_size(inode);
+    uint64_t inode_size = EXT4_INODE_SIZE(inode);
 
     if (inode_size <= 60) {
         /* Link destination fits in inode */
         memcpy(buf, inode->i_block, inode_size);
     } else {
         uint64_t pblock = inode_get_data_pblock(inode, 0, NULL);
-        char *block_data = malloc(EXT4_SUPER_SIZE(sb));
+        char *block_data = malloc(EXT4_BLOCK_SIZE(sb));
         disk_read_block(pblock, (uint8_t *)block_data);
         strncpy(buf, block_data, bufsize - 1);
         free(block_data);
