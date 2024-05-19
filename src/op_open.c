@@ -8,18 +8,37 @@
  */
 
 #include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "common.h"
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
-#include "ops.h"
+#include "common.h"
+
+
 
 int op_open(const char *path, struct fuse_file_info *fi) {
-    DEBUG("open");
+    DEBUG("open %s", path);
+
     if ((fi->flags & 3) != O_RDONLY)
         return -EACCES;
 
-    fi->fh = inode_get_idx_by_path(path);
+    uint32_t inode_idx = inode_get_idx_by_path(path);
+    struct ext4_inode inode;
+    if (inode_get_by_number(inode_idx, &inode) < 0) {
+        DEBUG("fail to get inode %d", inode_idx);
+        return -ENOENT;
+    }
+
+    // check if user has read permission
+    if (inode_check_permission(&inode) < 0) {
+        DEBUG("fail to check permission for inode %d", inode_idx);
+        return -EACCES;
+    }
+
+    fi->fh = inode_idx;
     DEBUG("%s is inode %d", path, fi->fh);
 
     return 0;

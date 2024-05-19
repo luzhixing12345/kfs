@@ -18,12 +18,14 @@
 
 #include "dcache.h"
 #include "disk.h"
+#include "ext4/e4f_dcache.h"
 #include "ext4/ext4_super.h"
 #include "extents.h"
 #include "logging.h"
 #include "super.h"
 
 extern struct ext4_super_block sb;
+extern struct dcache_entry root;
 
 /* These #defines are only relevant for ext2/3 style block indexing */
 #define ADDRESSES_IN_IND_BLOCK  (BLOCK_SIZE / sizeof(uint32_t))
@@ -33,7 +35,7 @@ extern struct ext4_super_block sb;
 #define MAX_DIND_BLOCK          (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
 #define MAX_TIND_BLOCK          (MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
 
-#define ROOT_INODE_N            2  // root inode_num
+#define ROOT_INODE_N            2  // root inode_idx
 #define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
 static const char *skip_trailing_backslash(const char *path) {
@@ -167,30 +169,25 @@ static uint8_t get_path_token_len(const char *path) {
     return len;
 }
 
-/**
- * @brief Get the cached inode num object
- *
- * @param path
- * @return struct dcache_entry* if found, NULL otherwise
- */
-static struct dcache_entry *get_cached_inode_num(const char **path) {
+
+struct dcache_entry *get_cached_inode_idx(const char *path) {
     struct dcache_entry *next = NULL;
     struct dcache_entry *ret;
 
     // /home/kamilu/kfs/test/0001-sanity-small.sh
     // |  1 |   2  | 3 |  4 |        5           |
     do {
-        skip_trailing_backslash(*path);
-        uint8_t path_len = get_path_token_len(*path);
+        skip_trailing_backslash(path);
+        uint8_t path_len = get_path_token_len(path);
         ret = next;
 
         if (path_len == 0) {
             return ret;
         }
 
-        next = dcache_lookup(ret, *path, path_len);
+        next = dcache_lookup(ret, path, path_len);
         if (next) {
-            *path += path_len;
+            path += path_len;
         }
     } while (next != NULL);
 
@@ -207,10 +204,10 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
     DEBUG("Looking up: %s", path);
 
-    // find inode in cache
-    struct dcache_entry *dc_entry = get_cached_inode_num(&path);
-    inode_idx = dcache_get_inode(dc_entry);
-    DEBUG("Found inode %d", inode_idx);
+    // first, find in cache
+    struct dcache_entry *dc_entry = get_cached_inode_idx(path);
+    inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
+    DEBUG("Found inode_idx %d", inode_idx);
 
     do {
         uint64_t offset = 0;
@@ -224,7 +221,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
             break;
         }
 
-        // load inode by inode_num
+        // load inode by inode_idx
         inode_get_by_number(inode_idx, &inode);
 
         inode_dir_ctx_reset(dctx, &inode);
@@ -233,10 +230,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
             offset += de->rec_len;
 
             // if length not equal or inode is 0, it's not a valid entry, continue
-            if (path_len != de->name_len || !de->inode)
-                continue;
-            if (strncmp(path, de->name, path_len)) {
-                DEBUG("%s != %s, next", path, de->name);
+            if (path_len != de->name_len || !de->inode || strncmp(path, de->name, path_len)) {
+                DEBUG("not match dentry %s", de->name);
                 continue;
             }
 
@@ -263,8 +258,25 @@ uint32_t inode_get_idx_by_path(const char *path) {
 }
 
 int inode_get_by_path(const char *path, struct ext4_inode *inode) {
-    // TODO: cache inode
-    return inode_get_by_number(inode_get_idx_by_path(path), inode);
+    uint32_t inode_idx = inode_get_idx_by_path(path);
+    return inode_get_by_number(inode_idx, inode);
+}
+
+// TODO check user permission
+int inode_check_permission(struct ext4_inode *inode) {
+    // UNIX permission check
+    struct fuse_context *cntx = fuse_get_context();
+    uid_t uid = cntx->uid;
+    gid_t gid = cntx->gid;
+    DEBUG("check inode & user permission");
+    DEBUG("inode uid %d, inode gid %d", inode->i_uid, inode->i_gid);
+    DEBUG("user uid %d, user gid %d", uid, gid);
+    // if (inode->i_uid != uid || inode->i_gid != gid) {
+    //     INFO("Permission denied");
+    //     return -EACCES;
+    // }
+    INFO("Permission granted");
+    return 0;
 }
 
 int inode_init(void) {

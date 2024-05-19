@@ -17,7 +17,7 @@
 int super_fill(void);
 
 /* struct ext4_group_desc */
-uint64_t get_inode_offset(uint32_t inode_num);
+uint64_t get_inode_offset(uint32_t inode_idx);
 int super_group_fill(void);
 
 #endif

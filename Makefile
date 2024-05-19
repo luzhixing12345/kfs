@@ -106,6 +106,7 @@ release:
 
 distclean:
 	rm -r $(RELEASE) $(RELEASE).tar
+	rm -r compile_commands.json
 
 help:
 	@echo -e ""

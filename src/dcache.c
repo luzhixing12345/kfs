@@ -10,11 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ext4/e4f_dcache.h"
+#include "dcache.h"
 #include "logging.h"
 
 #define DCACHE_ENTRY_CALLOC() calloc(1, sizeof(struct dcache_entry))
-#define DCACHE_ENTRY_LIFE 8
+#define DCACHE_ENTRY_LIFE     8
 
 /* Locking for the dcache is tricky.  What we try to do is to keep insertions
  * and lookups threadsafe by atomic updates.  That keeps the tree safe, but
@@ -29,10 +29,10 @@
  * so we just take it from whoever calls us.
  * All this hassle is basically to avoid copying around strings. */
 
-static struct dcache_entry root;
+struct dcache_entry root;
 
 int dcache_init_root(uint32_t n) {
-    if (root.inode) {
+    if (root.inode_idx) {
         WARNING("Reinitializing dcache not allowed.  Skipped.");
         return -1;
     }
@@ -40,7 +40,7 @@ int dcache_init_root(uint32_t n) {
     /* Root entry doesn't need most of the fields.  Namely, it only uses the
      * inode field and the childs pointer. */
     INFO("Initializing root dcache entry");
-    root.inode = n;
+    root.inode_idx = n;
     root.childs = NULL;
 
     return 0;
@@ -65,13 +65,13 @@ struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name
 
     if (parent == NULL) {
         parent = &root;
-        ASSERT(parent->inode);
+        ASSERT(parent->inode_idx);
     }
 
     struct dcache_entry *new_entry = DCACHE_ENTRY_CALLOC();
     strncpy(new_entry->name, name, namelen);
     new_entry->name[namelen] = 0;
-    new_entry->inode = n;
+    new_entry->inode_idx = n;
 
     if (!parent->childs) {
         // add as first child
@@ -91,11 +91,11 @@ struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name
 /**
  * @brief Lookup a cache entry for a given file name.  Return value is a struct pointer
  * that can be used to both obtain the inode number and insert further child
- * entries. 
- * 
- * @param parent 
- * @param name 
- * @param namelen 
+ * entries.
+ *
+ * @param parent
+ * @param name
+ * @param namelen
  * @return struct dcache_entry* if found, NULL otherwise
  */
 struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name, int namelen) {
@@ -123,8 +123,4 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
 
     DEBUG("fail to get cached entry %s", name);
     return NULL;
-}
-
-uint32_t dcache_get_inode(struct dcache_entry *entry) {
-    return entry ? entry->inode : root.inode;
 }

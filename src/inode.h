@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <sys/types.h>
+#include "common.h"
 
 #include "ext4/ext4_dentry.h"
 #include "ext4/ext4_inode.h"
@@ -23,7 +24,9 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, uint64_t off
 int inode_get_by_number(uint32_t n, struct ext4_inode *inode);
 int inode_get_by_path(const char *path, struct ext4_inode *inode);
 uint32_t inode_get_idx_by_path(const char *path);
-
+int inode_check_permission(struct ext4_inode *inode);
 int inode_init(void);
+
+struct dcache_entry *get_cached_inode_idx(const char *path);
 
 #endif
