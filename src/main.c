@@ -129,7 +129,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Check if the disk is an ext4 filesystem
-    if (disk_magic != 0xEF53) {
+    if (disk_magic != EXT4_S_MAGIC) {
         fprintf(stderr, "Magic number mismatch, partition doesn't contain EXT4 filesystem\n");
         return EXIT_FAILURE;
     }

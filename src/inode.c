@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -25,18 +26,19 @@
 extern struct ext4_super_block sb;
 
 /* These #defines are only relevant for ext2/3 style block indexing */
-#define ADDRESSES_IN_IND_BLOCK (BLOCK_SIZE / sizeof(uint32_t))
+#define ADDRESSES_IN_IND_BLOCK  (BLOCK_SIZE / sizeof(uint32_t))
 #define ADDRESSES_IN_DIND_BLOCK (ADDRESSES_IN_IND_BLOCK * ADDRESSES_IN_IND_BLOCK)
 #define ADDRESSES_IN_TIND_BLOCK (ADDRESSES_IN_DIND_BLOCK * ADDRESSES_IN_IND_BLOCK)
-#define MAX_IND_BLOCK (EXT4_NDIR_BLOCKS + ADDRESSES_IN_IND_BLOCK)
-#define MAX_DIND_BLOCK (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
-#define MAX_TIND_BLOCK (MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
+#define MAX_IND_BLOCK           (EXT4_NDIR_BLOCKS + ADDRESSES_IN_IND_BLOCK)
+#define MAX_DIND_BLOCK          (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
+#define MAX_TIND_BLOCK          (MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
 
-#define ROOT_INODE_N 2  // root inode_num
-#define IS_PATH_SEPARATOR(__c) ((__c) == '/')
+#define ROOT_INODE_N            2  // root inode_num
+#define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
-inline uint64_t inode_get_size(struct ext4_inode *inode) {
-    return ((uint64_t)inode->i_size_high << 32) | inode->i_size_lo;
+static const char *skip_trailing_backslash(const char *path) {
+    while (IS_PATH_SEPARATOR(*path)) path++;
+    return path;
 }
 
 static uint32_t __inode_get_data_pblock_ind(uint32_t lblock, uint32_t index_block) {
@@ -74,9 +76,12 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
         *extent_len = 1;
 
     if (inode->i_flags & EXT4_EXTENTS_FL) {
+        // inode use ext4 extents
         return extent_get_pblock(&inode->i_block, lblock, extent_len);
     } else {
-        ASSERT(lblock <= BYTES2BLOCKS(inode_get_size(inode)));
+        // old ext2 style, for backward compatibility
+        // direct block, indirect block, dindirect block, tindirect block
+        ASSERT(lblock <= BYTES2BLOCKS(EXT4_INODE_SIZE(inode)));
 
         if (lblock < EXT4_NDIR_BLOCKS) {
             return inode->i_block[lblock];
@@ -100,7 +105,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-static void dir_ctx_update(struct ext4_inode *inode, uint32_t lblock, struct inode_dir_ctx *ctx) {
+static void dir_ctx_update(struct inode_dir_ctx *ctx, struct ext4_inode *inode, uint32_t lblock) {
     uint64_t dir_pblock = inode_get_data_pblock(inode, lblock, NULL);
     disk_read_block(dir_pblock, ctx->buf);
     ctx->lblock = lblock;
@@ -110,31 +115,36 @@ struct inode_dir_ctx *inode_dir_ctx_get(void) {
     return malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
 }
 
+// reset the directory context
 void inode_dir_ctx_reset(struct inode_dir_ctx *ctx, struct ext4_inode *inode) {
-    dir_ctx_update(inode, 0, ctx);
+    dir_ctx_update(ctx, inode, 0);
 }
 
 void inode_dir_ctx_put(struct inode_dir_ctx *ctx) {
     free(ctx);
 }
 
-struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, off_t offset, struct inode_dir_ctx *ctx) {
-    uint32_t lblock = offset / BLOCK_SIZE;
-    uint32_t blk_offset = offset % BLOCK_SIZE;
-    uint64_t inode_size = inode_get_size(inode);
-    size_t un_offset = (size_t)offset;
+// get the dentry from the directory, with a given offset
+struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, uint64_t offset, struct inode_dir_ctx *ctx) {
+    uint64_t lblock = offset / BLOCK_SIZE;
+    uint64_t blk_offset = offset % BLOCK_SIZE;
 
-    DEBUG("%zd/%" PRIu64 "", un_offset, inode_size);
-    ASSERT(inode_size >= un_offset);
-    if (inode_size == un_offset) {
+    uint64_t inode_size = EXT4_INODE_SIZE(inode);
+    DEBUG("offset %lu, lblock %u, blk_offset %u, inode_size %lu", offset, lblock, blk_offset, inode_size);
+    ASSERT(inode_size >= offset);
+    // if the offset is at the end of the inode, return NULL
+    if (inode_size == offset) {
         return NULL;
     }
 
     if (lblock == ctx->lblock) {
+        // if the offset is in the same block, return the dentry
+        DEBUG("ctx lblock match lblock %u", lblock);
         return (struct ext4_dir_entry_2 *)&ctx->buf[blk_offset];
     } else {
-        dir_ctx_update(inode, lblock, ctx);
-        return inode_dentry_get(inode, un_offset, ctx);
+        DEBUG("ctx lblock %u not match lblock %u, update", ctx->lblock, lblock);
+        dir_ctx_update(ctx, inode, lblock);
+        return inode_dentry_get(inode, offset, ctx);
     }
 }
 
@@ -143,11 +153,9 @@ int inode_get_by_number(uint32_t n, struct ext4_inode *inode) {
         return -ENOENT;
     n--; /* Inode 0 doesn't exist on disk */
 
-    off_t off = get_inode_offset(n);
-    /* If on-disk inode is ext3 type, it will be smaller than the struct.  EXT4
-     * inodes, on the other hand, are double size, but the struct still doesn't
-     * have fields for all of them. */
-    disk_read(off, MIN(EXT4_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
+    // read disk by inode number
+    uint64_t off = get_inode_offset(n);
+    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
     return 0;
 }
 
@@ -172,10 +180,7 @@ static struct dcache_entry *get_cached_inode_num(const char **path) {
     // /home/kamilu/kfs/test/0001-sanity-small.sh
     // |  1 |   2  | 3 |  4 |        5           |
     do {
-        if (**path == '/') {
-            *path = *path + 1; /* Skip over the slash */
-        }
-
+        skip_trailing_backslash(*path);
         uint8_t path_len = get_path_token_len(*path);
         ret = next;
 
@@ -192,11 +197,6 @@ static struct dcache_entry *get_cached_inode_num(const char **path) {
     return ret;
 }
 
-static const char *skip_trailing_backslash(const char *path) {
-    while (IS_PATH_SEPARATOR(*path)) path++;
-    return path;
-}
-
 uint32_t inode_get_idx_by_path(const char *path) {
     struct inode_dir_ctx *dctx = inode_dir_ctx_get();
     uint32_t inode_idx = 0;
@@ -207,43 +207,52 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
     DEBUG("Looking up: %s", path);
 
+    // find inode in cache
     struct dcache_entry *dc_entry = get_cached_inode_num(&path);
     inode_idx = dcache_get_inode(dc_entry);
     DEBUG("Found inode %d", inode_idx);
- 
+
     do {
-        uint32_t offset = 0;
-        struct ext4_dir_entry_2 *dentry = NULL;
+        uint64_t offset = 0;
+        struct ext4_dir_entry_2 *de = NULL;
 
         path = skip_trailing_backslash(path);
         uint8_t path_len = get_path_token_len(path);
 
-        if (path_len == 0)
+        if (path_len == 0) {
+            // Reached the end of the path
             break;
+        }
+
+        // load inode by inode_num
         inode_get_by_number(inode_idx, &inode);
 
         inode_dir_ctx_reset(dctx, &inode);
-        while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
-            offset += dentry->rec_len;
+        while ((de = inode_dentry_get(&inode, offset, dctx))) {
+            DEBUG("get dentry %s", de->name);
+            offset += de->rec_len;
 
-            if (!dentry->inode)
+            // if length not equal or inode is 0, it's not a valid entry, continue
+            if (path_len != de->name_len || !de->inode)
                 continue;
-            if (path_len != dentry->name_len)
+            if (strncmp(path, de->name, path_len)) {
+                DEBUG("%s != %s, next", path, de->name);
                 continue;
-            if (memcmp(path, dentry->name, dentry->name_len))
-                continue;
+            }
 
-            inode_idx = dentry->inode;
-            DEBUG("Lookup following inode %d", inode_idx);
+            // Found the entry
+            INFO("Found entry %s, inode %d", de->name, de->inode);
+            inode_idx = de->inode;
 
             if (S_ISDIR(inode.i_mode)) {
+                // if the entry is a directory, add it to the cache
                 dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
         }
 
-        /* Couldn't find the entry at all */
-        if (dentry == NULL) {
+        /* Couldn't find the entry */
+        if (de == NULL) {
             inode_idx = 0;
             break;
         }

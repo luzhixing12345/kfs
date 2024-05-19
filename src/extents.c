@@ -10,9 +10,9 @@
 #include "extents.h"
 
 #include "disk.h"
+#include "ext4/ext4_super.h"
 #include "logging.h"
 #include "super.h"
-#include "ext4/ext4_super.h"
 
 extern struct ext4_super_block sb;
 
@@ -23,19 +23,24 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
     uint32_t i;
 
     DEBUG("Extent contains %d entries", n_ee);
-    DEBUG("Looking for LBlock %d", lblock);
+    DEBUG("Looking for Logic Block %d", lblock);
 
     /* Skip to the right extent entry */
     for (i = 0; i < n_ee; i++) {
         ASSERT(ee[i].ee_start_hi == 0);
 
+        // Check if the block is in this extent
         if (ee[i].ee_block + ee[i].ee_len > lblock) {
+            DEBUG("Block found in extent [%d]", i);
+            DEBUG("ee_block = %d, ee_len = %d, lblock = %d", ee[i].ee_block, ee[i].ee_len, lblock);
             block_ext_index = i;
             block_ext_offset = lblock - ee[i].ee_block;
-            if (len)
+            if (len) {
                 *len = ee[i].ee_block + ee[i].ee_len - lblock;
+            }
             break;
         }
+        DEBUG("Block not found in extent [%d]", i);
     }
 
     if (n_ee == i) {
@@ -71,8 +76,11 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
     uint64_t ret;
 
     ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
+    DEBUG("reading inode extent, depth = %d", eh->eh_depth);
 
     if (eh->eh_depth == 0) {
+        // Leaf inode, direct block
+        // 1 extent header + 4 extents
         ee_array = extents + sizeof(struct ext4_extent_header);
         ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, len);
     } else {

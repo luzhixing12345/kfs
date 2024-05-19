@@ -57,7 +57,7 @@ int dcache_init_root(uint32_t n) {
  * `-----------´       `----------------´
  */
 struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n) {
-    DEBUG("Inserting %s,%d to dcache", name, namelen);
+    DEBUG("Inserting %s to dcache", name);
 
     /* TODO: Deal with names that exceed the allocated size */
     if (namelen + 1 > DCACHE_ENTRY_NAME_LEN)
@@ -74,9 +74,12 @@ struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name
     new_entry->inode = n;
 
     if (!parent->childs) {
+        // add as first child
+        DEBUG("parent has no childs");
         new_entry->siblings = new_entry;
         parent->childs = new_entry;
     } else {
+        DEBUG("parent has childs %s", parent->childs->name);
         new_entry->siblings = parent->childs->siblings;
         parent->childs->siblings = new_entry;
         parent->childs = new_entry;
@@ -111,14 +114,14 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
     do {
         if (strncmp(iter->name, name, namelen) == 0 && iter->name[namelen] == 0) {
             parent->childs = iter;
-            DEBUG("Looking up %s,%d: Found", name, namelen);
+            INFO("get dcache entry %s", name);
             return iter;
         }
 
         iter = iter->siblings;
     } while (iter != parent->childs);
 
-    DEBUG("Looking up %s,%d: Not found", name, namelen);
+    DEBUG("fail to get cached entry %s", name);
     return NULL;
 }
 

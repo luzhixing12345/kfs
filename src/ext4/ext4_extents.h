@@ -26,8 +26,6 @@
  * the remainder stores an array of ext4_extent.
  */
 
-#define EXT4_EXT_MAGIC 0xf30a
-
 /*
  * This is the extent on-disk structure.
  * It's used at the bottom of the tree.
@@ -60,4 +58,7 @@ struct ext4_extent_header {
     __le16 eh_depth;      /* 树的深度,表示是否有实际的底层块 */
     __le32 eh_generation; /* 扩展索引树的版本号,用于确保一致性 */
 };
+
+#define EXT4_EXT_MAGIC 0xF30A // extent header magic number
+
 #endif
