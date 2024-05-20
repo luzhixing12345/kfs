@@ -39,7 +39,6 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
     }
 
     struct ext4_inode inode;
-    int ret;
 
     uint32_t inode_idx;
     if (fi && fi->fh) {
@@ -48,23 +47,25 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
         inode_idx = inode_get_idx_by_path(path);
     }
 
-    ret = inode_get_by_number(inode_idx, &inode);
-    if (ret < 0) {
-        return ret;
+    // read disk by inode number
+    if (inode_idx == 0) {
+        return -ENOENT;
     }
+    inode_idx--; /* Inode 0 doesn't exist on disk */
 
-    ret = inode_check_permission(&inode);
-    if (ret < 0) {
-        return ret;
+    uint64_t off = inode_get_offset(inode_idx);
+    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
+
+    if (inode_check_permission(&inode, WR_ONLY)) {
+        return -EPERM;
     }
 
     // update the access and modification times
     inode.i_atime = asec;
     inode.i_mtime = msec;
-    INFO("update inode atime %d, mtime %d", inode.i_atime, inode.i_mtime);
 
     // write back the inode
-    inode_set_by_number(inode_idx, &inode);
+    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
 
     DEBUG("utimens done");
     return 0;

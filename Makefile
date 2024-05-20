@@ -31,7 +31,10 @@ OBJ = $(SRC:.$(SRC_EXT)=.o)
 MKFS = mkfs.ext4
 DUMPFS = dumpe2fs
 
+OPTIM_LEVEL = 1
 DEBUG_LEVEL = 3
+LOG_LEVEL = 7
+LOG_FILE = kfs.log
 
 #define LOG_EMERG   0
 #define LOG_ALERT   1
@@ -41,13 +44,13 @@ DEBUG_LEVEL = 3
 #define LOG_NOTICE  5
 #define LOG_INFO    6
 #define LOG_DEBUG   7
-LOG_LEVEL = 7
-LOG_FILE = kfs.log
+
 # LOG_FILE = /dev/stdout
-CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL)
+CFLAGS += -DLOG_LEVEL=$(LOG_LEVEL) -O$(OPTIM_LEVEL)
 
 ifeq ($(MAKECMDGOALS),debug)
 CFLAGS+=-g$(DEBUG_LEVEL)
+OPTIM_LEVEL = 0
 endif
 
 all: $(SRC_PATH)/$(TARGET)

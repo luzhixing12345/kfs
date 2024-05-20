@@ -19,9 +19,11 @@ extern struct dcache_entry root;
  * will be called instead.
  */
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-    DEBUG("create path %s", path);
+    DEBUG("create path %s with flags %o", path, fi->flags);
     struct dcache_entry *dc_entry = get_cached_inode_idx(path);
     uint32_t inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
     DEBUG("Found inode_idx %d", inode_idx);
+
+    // uint32_t pflags = 0;
     return 0;
 }

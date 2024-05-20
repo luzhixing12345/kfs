@@ -30,10 +30,9 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     struct ext4_inode inode;
 
     /* We can use inode_get_by_number, but first we need to implement opendir */
-    int ret = inode_get_by_path(path, &inode);
-
-    if (ret < 0) {
-        return ret;
+    if (inode_get_by_path(path, &inode) < 0) {
+        DEBUG("fail to get inode %s", path);
+        return -ENOENT;
     }
 
     struct inode_dir_ctx *dctx = inode_dir_ctx_get();

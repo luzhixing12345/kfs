@@ -45,7 +45,10 @@ int op_readlink(const char *path, char *buf, size_t bufsize) {
     struct ext4_inode inode;
     DEBUG("readlink");
 
-    inode_get_by_path(path, &inode);
+    if (inode_get_by_path(path, &inode) < 0) {
+        DEBUG("fail to get inode %s", path);
+        return -ENOENT;
+    }
     if (!S_ISLNK(inode.i_mode)) {
         return -EINVAL;
     }

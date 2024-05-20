@@ -30,22 +30,6 @@ int super_fill(void) {
     return 0;
 }
 
-uint64_t get_inode_offset(uint32_t inode_idx) {
-    // first calculate inode_idx in which group
-    uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
-    ASSERT(group_idx < EXT4_N_BLOCK_GROUPS(sb));
-
-    // get inode table offset by gdesc_table
-    uint64_t off = 0;
-    if (EXT4_DESC_SIZE(sb) == EXT4_DESC_SIZE_64BIT) {
-        off = gdesc_table[group_idx].bg_inode_table_hi;
-    }
-    off = (off << 32) | gdesc_table[group_idx].bg_inode_table_lo;
-    off = BLOCKS2BYTES(off) + (inode_idx % EXT4_INODES_PER_GROUP(sb)) * EXT4_S_INODE_SIZE(sb);
-    DEBUG("inode_idx: %u, group_idx: %u, off: %lu", inode_idx, group_idx, off);
-    return off;
-}
-
 int super_group_fill(void) {
     int group_num = EXT4_N_BLOCK_GROUPS(sb);
     gdesc_table = malloc(sizeof(struct ext4_group_desc) * group_num);

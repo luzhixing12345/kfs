@@ -20,10 +20,7 @@
 
 
 int op_open(const char *path, struct fuse_file_info *fi) {
-    DEBUG("open %s", path);
-
-    if ((fi->flags & 3) != O_RDONLY)
-        return -EACCES;
+    DEBUG("open %s with flags %o", path, fi->flags);
 
     uint32_t inode_idx = inode_get_idx_by_path(path);
     struct ext4_inode inode;
@@ -32,8 +29,9 @@ int op_open(const char *path, struct fuse_file_info *fi) {
         return -ENOENT;
     }
 
+    access_mode_t mode = fi->flags & O_ACCMODE;
     // check if user has read permission
-    if (inode_check_permission(&inode) < 0) {
+    if (inode_check_permission(&inode, mode) < 0) {
         DEBUG("fail to check permission for inode %d", inode_idx);
         return -EACCES;
     }

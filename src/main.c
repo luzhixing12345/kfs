@@ -10,7 +10,6 @@
  *      - http://fuse.sourceforge.net/helloworld.html
  */
 
-
 #include <errno.h>
 #include <execinfo.h>
 #include <fcntl.h>
@@ -23,11 +22,11 @@
 
 #include "common.h"
 #include "disk.h"
+#include "ext4/ext4_super.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
 #include "super.h"
-#include "ext4/ext4_super.h"
 
 #ifndef EXT4FUSE_VERSION
 #define EXT4FUSE_VERSION "v0.0.1"
@@ -36,16 +35,31 @@
 static struct fuse_operations e4f_ops = {
     .init = op_init,
     .getattr = op_getattr,
-    .readdir = op_readdir,
-    .open = op_open,
-    .read = op_read,
-    .readlink = op_readlink,
-    .destroy = op_destory,
     .access = op_access,
-    .flush = op_flush,
-    .create = op_create,
+    // .opendir = op_opendir,
+    .readdir = op_readdir,
+    // .releasedir = op_releasedir,
+    .readlink = op_readlink,
+    // .mknod = op_mknod,
+    // .mkdir = op_mkdir,
+    // .symlink = op_symlink,
+    // .unlink = op_unlink,
+    // .rmdir = op_rmdir,
+    // .rename = op_rename,
+    // .link = op_link,
+    .chmod = op_chmod,
+    .chown = op_chown,
+    // .truncate = op_truncate,
     .utimens = op_utimens,
-    // .write = op_write,
+    .open = op_open,
+    .flush = op_flush,
+    // .fsync = op_fsync,
+    // .release = op_release,
+    .read = op_read,
+    .write = op_write,
+    // .statfs = op_statfs,
+    .create = op_create,
+    .destroy = op_destory,
 };
 
 static struct e4f {

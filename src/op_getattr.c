@@ -16,19 +16,14 @@
 #include "ops.h"
 
 int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
-    struct ext4_inode inode;
-    int ret = 0;
-
     DEBUG("getattr(%s)", path);
 
+    struct ext4_inode inode;
     memset(stbuf, 0, sizeof(struct stat));  // clear the struct
-    ret = inode_get_by_path(path, &inode);  // get the inode by file path
-
-    if (ret < 0) {
-        return ret;
+    if (inode_get_by_path(path, &inode) < 0) {
+        DEBUG("fail to get inode %s", path);
+        return -ENOENT;
     }
-
-    DEBUG("getattr done");
 
     // get umask
     struct fuse_context *cntx = fuse_get_context();

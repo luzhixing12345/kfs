@@ -26,6 +26,7 @@
 
 extern struct ext4_super_block sb;
 extern struct dcache_entry root;
+extern struct ext4_group_desc *gdesc_table;
 
 /* These #defines are only relevant for ext2/3 style block indexing */
 #define ADDRESSES_IN_IND_BLOCK  (BLOCK_SIZE / sizeof(uint32_t))
@@ -150,13 +151,13 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, uint64_t off
     }
 }
 
-int inode_get_by_number(uint32_t n, struct ext4_inode *inode) {
-    if (n == 0)
+int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
+    if (inode_idx == 0)
         return -ENOENT;
-    n--; /* Inode 0 doesn't exist on disk */
+    inode_idx--; /* Inode 0 doesn't exist on disk */
 
     // read disk by inode number
-    uint64_t off = get_inode_offset(n);
+    uint64_t off = inode_get_offset(inode_idx);
     disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
     return 0;
 }
@@ -167,7 +168,7 @@ int inode_set_by_number(uint32_t n, struct ext4_inode *inode) {
     n--; /* Inode 0 doesn't exist on disk */
 
     // write disk by inode number
-    uint64_t off = get_inode_offset(n);
+    uint64_t off = inode_get_offset(n);
     disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
     return 0;
 }
@@ -179,7 +180,6 @@ static uint8_t get_path_token_len(const char *path) {
     }
     return len;
 }
-
 
 struct dcache_entry *get_cached_inode_idx(const char *path) {
     struct dcache_entry *next = NULL;
@@ -273,19 +273,32 @@ int inode_get_by_path(const char *path, struct ext4_inode *inode) {
     return inode_get_by_number(inode_idx, inode);
 }
 
+uint64_t inode_get_offset(uint32_t inode_idx) {
+    // first calculate inode_idx in which group
+    uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
+    ASSERT(group_idx < EXT4_N_BLOCK_GROUPS(sb));
+
+    // get inode table offset by gdesc_table
+    uint64_t off = 0;
+    if (EXT4_DESC_SIZE(sb) == EXT4_DESC_SIZE_64BIT) {
+        off = gdesc_table[group_idx].bg_inode_table_hi;
+    }
+    off = (off << 32) | gdesc_table[group_idx].bg_inode_table_lo;
+    off = BLOCKS2BYTES(off) + (inode_idx % EXT4_INODES_PER_GROUP(sb)) * EXT4_S_INODE_SIZE(sb);
+    DEBUG("inode_idx: %u, group_idx: %u, off: %lu", inode_idx, group_idx, off);
+    return off;
+}
+
 // TODO check user permission
-int inode_check_permission(struct ext4_inode *inode) {
+int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     // UNIX permission check
     struct fuse_context *cntx = fuse_get_context();
     uid_t uid = cntx->uid;
     gid_t gid = cntx->gid;
-    DEBUG("check inode & user permission");
+    DEBUG("check inode & user permission on op mode %d", mode);
     DEBUG("inode uid %d, inode gid %d", inode->i_uid, inode->i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);
-    // if (inode->i_uid != uid || inode->i_gid != gid) {
-    //     INFO("Permission denied");
-    //     return -EACCES;
-    // }
+
     INFO("Permission granted");
     return 0;
 }

@@ -172,3 +172,4 @@ getattr[NULL]
 - [FAT 和 UNIX 文件系统 (磁盘上的数据结构) [南京大学2023操作系统-P28] (蒋炎岩)](https://www.bilibili.com/video/BV1xN411C74V/)
 - [14.ext2文件系统](https://www.bilibili.com/video/BV1V84y1A7or/)
 - [UserSpace-Memory-Fuse-System](https://github.com/jinCode-gao/UserSpace-Memory-Fuse-System)
+- [sshfs](https://github.com/libfuse/sshfs)
