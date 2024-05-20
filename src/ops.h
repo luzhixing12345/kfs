@@ -1,7 +1,6 @@
 
 #pragma once
 #include "common.h"
-#include <errno.h>
 
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg);
 int op_readlink(const char *path, char *buf, size_t bufsize);

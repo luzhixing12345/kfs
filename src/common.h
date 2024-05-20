@@ -4,7 +4,7 @@
 #define FUSE_USE_VERSION 31
 
 #include <fuse3/fuse.h>
-
+#include <errno.h>
 
 #define ALIGN_TO(__n, __align) ({                           \
     typeof (__n) __ret;                                     \

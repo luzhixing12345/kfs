@@ -14,10 +14,12 @@
 #include "ops.h"
 #include "super.h"
 
+unsigned fuse_capable;
+
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     INFO("Using FUSE protocol %d.%d", info->proto_major, info->proto_minor);
     cfg->kernel_cache = 1;  // Enable kernel cache
-
+    fuse_capable = info->capable;
     // Initialize the super block
     super_fill();        // superblock
     super_group_fill();  // group descriptors
