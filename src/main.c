@@ -44,6 +44,8 @@ static struct fuse_operations e4f_ops = {
     .access = op_access,
     .flush = op_flush,
     .create = op_create,
+    .utimens = op_utimens,
+    // .write = op_write,
 };
 
 static struct e4f {

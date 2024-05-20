@@ -7,6 +7,7 @@
  * more details.
  */
 
+#include <stdio.h>
 #define _XOPEN_SOURCE 500
 #include "disk.h"
 
@@ -83,7 +84,7 @@ static int pread_wrapper(int fd, void *p, size_t size, off_t where) {
 }
 
 int disk_open(const char *path) {
-    disk_fd = open(path, O_RDONLY);
+    disk_fd = open(path, O_RDWR);
     if (disk_fd < 0) {
         return -errno;
     }

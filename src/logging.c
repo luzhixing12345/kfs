@@ -50,6 +50,7 @@ void __LOG(int level, const char *func, int line, const char *format, ...) {
     fprintf(logfile, "[%s][%s:%d] ", loglevel_str[level], func, line);
     vfprintf(logfile, format, ap);
     fprintf(logfile, "\n");
+    fflush(logfile);
     va_end(ap);
     pthread_mutex_unlock(&lock);
 }

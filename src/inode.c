@@ -81,7 +81,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
         // inode use ext4 extents
         return extent_get_pblock(&inode->i_block, lblock, extent_len);
     } else {
-        // old ext2 style, for backward compatibility
+        // old ext2/3 style, for backward compatibility
         // direct block, indirect block, dindirect block, tindirect block
         ASSERT(lblock <= BYTES2BLOCKS(EXT4_INODE_SIZE(inode)));
 
@@ -158,6 +158,17 @@ int inode_get_by_number(uint32_t n, struct ext4_inode *inode) {
     // read disk by inode number
     uint64_t off = get_inode_offset(n);
     disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
+    return 0;
+}
+
+int inode_set_by_number(uint32_t n, struct ext4_inode *inode) {
+    if (n == 0)
+        return -ENOENT;
+    n--; /* Inode 0 doesn't exist on disk */
+
+    // write disk by inode number
+    uint64_t off = get_inode_offset(n);
+    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
     return 0;
 }
 

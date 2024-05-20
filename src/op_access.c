@@ -9,6 +9,7 @@ int op_access(const char *path, int mask) {
     // struct fuse_context *cntx=fuse_get_context();
     // uid_t uid=cntx->uid;
     // gid_t gid=cntx->gid;
+    
     // if(mask==F_OK){
     //     return 0;
     // }

@@ -88,6 +88,9 @@ run:
 	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
 	@echo "log file save in: $(LOG_FILE)"
 
+mkfs:
+	gcc mkfs.c -o $(MKFS)
+
 dump:
 	$(DUMPFS) -f $(DISK_IMG)
 
