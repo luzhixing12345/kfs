@@ -58,7 +58,7 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
         return 0;
 
     // FIXME: start_lblock - end_lblock -> pblock_addrs[...]
-    addr_t start_pblock = inode_get_data_pblock(inode, start_lblock, NULL);
+    uint64_t start_pblock = inode_get_data_pblock(inode, start_lblock, NULL);
 
     if (start_lblock == end_lblock) {
         // only one block to read

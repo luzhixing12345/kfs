@@ -49,10 +49,10 @@ int op_mkdir(const char *path, mode_t mode) {
     }
 
     // create new dentry
-    struct ext4_dir_entry_2 new_dentry;
-    if (dentry_create(dir_name, dir_idx, &new_dentry) < 0) {
+    if (dentry_create(de, dir_name, dir_idx) < 0) {
         ERR("fail to create dentry");
         return -ENOENT;
     }
+
     return 0;
 }

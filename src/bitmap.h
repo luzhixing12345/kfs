@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
+
+int bitmap_init();
 
 /**
  * @brief find the first free inode in inode bitmap

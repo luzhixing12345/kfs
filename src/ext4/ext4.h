@@ -7,6 +7,8 @@
 
 extern struct ext4_super_block sb;
 extern struct ext4_group_desc *gdt;
+extern uint64_t **i_bitmap;
+extern uint64_t **d_bitmap;
 
 #define BOOT_SECTOR_SIZE             0x400   // boot sector
 #define EXT4_S_MAGIC                 0xEF53  // ext4 magic number
@@ -40,3 +42,7 @@ extern struct ext4_group_desc *gdt;
 #define EXT4_SUPER_GROUP_SIZE(sb)    (BLOCKS2BYTES(sb.s_blocks_per_group))
 #define EXT4_BLOCK_COUNT(sb)         (((uint64_t)sb.s_blocks_count_hi << 32) | sb.s_blocks_count_lo)
 #define EXT4_N_BLOCK_GROUPS(sb)      ((EXT4_BLOCK_COUNT(sb) + EXT4_BLOCKS_PER_GROUP(sb) - 1) / EXT4_BLOCKS_PER_GROUP(sb))
+
+
+// dentry
+#define EXT4_NEXT_DE(de)             ((struct ext4_dentry *)(de) + 1)

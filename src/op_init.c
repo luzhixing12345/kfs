@@ -10,8 +10,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "bitmap.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_basic.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -19,16 +21,17 @@ unsigned fuse_capable;
 
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
+uint64_t **i_bitmap = NULL;
+uint64_t **d_bitmap = NULL;
 
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
 
     INFO("BLOCK SIZE: %i", EXT4_BLOCK_SIZE(sb));
-    INFO("BLOCK GROUP SIZE: %i", EXT4_SUPER_GROUP_SIZE(sb));
     INFO("N BLOCK GROUPS: %i", EXT4_N_BLOCK_GROUPS(sb));
     INFO("INODE SIZE: %i", EXT4_S_INODE_SIZE(sb));
     INFO("INODES PER GROUP: %i", EXT4_INODES_PER_GROUP(sb));
-    INFO("GROUP DESC SIZE: %i", EXT4_DESC_SIZE(sb));
+    INFO("BLOCKS PER GROUP: %i", EXT4_BLOCKS_PER_GROUP(sb));
 
     time_t now = time(NULL);
     sb.s_mtime = now;
@@ -58,7 +61,8 @@ void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     // Initialize the super block
     super_fill();        // superblock
     super_group_fill();  // group descriptors
-    inode_init();        // root inode
+    bitmap_init();
+    inode_init();  // root inode
 
     return NULL;
 }
