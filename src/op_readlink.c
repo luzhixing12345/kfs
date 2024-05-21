@@ -9,18 +9,16 @@
 
 #include <errno.h>
 #include <libgen.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
 #include "common.h"
 #include "disk.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "super.h"
-
-extern struct ext4_super_block sb;
 
 static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
     uint64_t inode_size = EXT4_INODE_SIZE(inode);

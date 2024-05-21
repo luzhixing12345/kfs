@@ -8,11 +8,11 @@
  */
 
 #include "extents.h"
+#include <stdlib.h>
 
 #include "disk.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "logging.h"
-#include "super.h"
 
 extern struct ext4_super_block sb;
 

@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "common.h"
-#include "inode.h"
+#include "dentry.h"
 #include "logging.h"
 #include "ops.h"
 
@@ -26,7 +26,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
     UNUSED(fi);
     char name_buf[EXT4_NAME_LEN];
-    struct ext4_dir_entry_2 *dentry = NULL;
+    struct ext4_dir_entry_2 *de = NULL;
     struct ext4_inode inode;
 
     /* We can use inode_get_by_number, but first we need to implement opendir */
@@ -35,12 +35,12 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
         return -ENOENT;
     }
 
-    struct inode_dir_ctx *dctx = inode_dir_ctx_get();
-    inode_dir_ctx_reset(dctx, &inode);
-    while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
-        offset += dentry->rec_len;
+    struct inode_dir_ctx *dctx = dir_ctx_malloc();
+    dir_ctx_init(dctx, &inode);
+    while ((de = dentry_next(&inode, offset, dctx))) {
+        offset += de->rec_len;
 
-        if (!dentry->inode_idx) {
+        if (!de->inode_idx) {
             /* It seems that is possible to have a dummy entry like this at the
              * begining of a block of dentries.  Looks like skipping is the
              * reasonable thing to do. */
@@ -48,13 +48,13 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
         }
 
         /* Providing offset to the filler function seems slower... */
-        get_printable_name(name_buf, dentry);
+        get_printable_name(name_buf, de);
         if (name_buf[0]) {
             if (filler(buf, name_buf, NULL, offset, 0) != 0)
                 break;
         }
     }
-    inode_dir_ctx_put(dctx);
+    dir_ctx_free(dctx);
 
     return 0;
 }

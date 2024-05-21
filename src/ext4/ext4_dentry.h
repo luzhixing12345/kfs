@@ -30,6 +30,7 @@
 #include "ext4_basic.h"
 
 #define EXT4_NAME_LEN 255
+#define EXT4_DE_BASE_SIZE 8
 
 // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Directory_Entries
 struct ext4_dir_entry_2 {
@@ -50,13 +51,24 @@ struct ext4_dir_entry_2 {
 // 0x6	Socket.
 // 0x7	Symbolic link.
 
-#define EXT4_DE_UNKNOWN  0
-#define EXT4_DE_REG_FILE 1
-#define EXT4_DE_DIR      2
-#define EXT4_DE_CHRDEV   3
-#define EXT4_DE_BLKDEV   4
-#define EXT4_DE_FIFO     5
-#define EXT4_DE_SOCK     6
-#define EXT4_DE_SYMLINK  7
+#define EXT4_FT_UNKNOWN  0
+#define EXT4_FT_REG_FILE 1
+#define EXT4_FT_DIR      2
+#define EXT4_FT_CHRDEV   3
+#define EXT4_FT_BLKDEV   4
+#define EXT4_FT_FIFO     5
+#define EXT4_FT_SOCK     6
+#define EXT4_FT_SYMLINK  7
+
+#define EXT4_FT_DIR_CSUM	0xDE
+
+/*
+ * EXT4_DIR_PAD defines the directory entries boundaries
+ *
+ * NOTE: It must be a multiple of 4
+ */
+#define EXT4_DIR_PAD			4
+#define EXT4_DIR_ROUND			(EXT4_DIR_PAD - 1)
+#define EXT4_MAX_REC_LEN		((1<<16)-1)
 
 #endif

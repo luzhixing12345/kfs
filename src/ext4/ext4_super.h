@@ -27,8 +27,6 @@
 
 #include "ext4_basic.h"
 
-#define BOOT_SECTOR_SIZE 0x400  // boot sector
-#define EXT4_S_MAGIC     0xEF53 // ext4 magic number
 
 /*
  * Structure of a blocks group descriptor
@@ -54,24 +52,6 @@ struct ext4_group_desc {
     __le16 bg_itable_unused_hi;     /* 未使用索引节点数的高位计数 */
     __u32 bg_reserved2[3];          /* 保留的未使用空间 */
 };
-
-/*
- * Macro-instructions used to manage group descriptors
- */
-#define EXT4_DESC_SIZE_32BIT        32
-#define EXT4_DESC_SIZE_64BIT        64
-#define EXT4_DESC_SIZE(s)           (s.s_desc_size)
-#define EXT4_S_INODE_SIZE(s)        (s.s_inode_size)
-#define EXT4_BLOCK_SIZE(s)          (((uint64_t)1) << (s.s_log_block_size + 10))
-#define EXT4_BLOCKS_PER_GROUP(s)    (s.s_blocks_per_group)
-#define EXT4_CLUSTERS_PER_GROUP(s)  (s.s_clusters_per_group)
-#define EXT4_DESC_PER_BLOCK(s)      (s.s_desc_per_block)
-#define EXT4_INODES_PER_GROUP(s)    (s.s_inodes_per_group)
-#define EXT4_DESC_PER_BLOCK_BITS(s) (s.s_desc_per_block_bits)
-
-#define EXT4_SUPER_GROUP_SIZE(s)    (BLOCKS2BYTES(s.s_blocks_per_group))
-#define EXT4_BLOCK_COUNT(s)         (((uint64_t)s.s_blocks_count_hi << 32) | s.s_blocks_count_lo)
-#define EXT4_N_BLOCK_GROUPS(s)      ((EXT4_BLOCK_COUNT(s) + EXT4_BLOCKS_PER_GROUP(s) - 1) / EXT4_BLOCKS_PER_GROUP(s))
 
 /*
  * Structure of the super block

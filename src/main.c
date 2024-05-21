@@ -22,11 +22,10 @@
 
 #include "common.h"
 #include "disk.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "super.h"
 
 #ifndef EXT4FUSE_VERSION
 #define EXT4FUSE_VERSION "v0.0.1"

@@ -3,13 +3,10 @@
 #include <sys/time.h>
 
 #include "disk.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "super.h"
-
-extern struct ext4_super_block sb;
 
 /**
  * Change the access and modification times of a file with

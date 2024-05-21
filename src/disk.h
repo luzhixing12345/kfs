@@ -1,9 +1,8 @@
 #ifndef DISK_H
 #define DISK_H
 
+#include <stdint.h>
 #include <sys/types.h>
-
-#include "super.h"
 
 #define disk_read(__where, __s, __p) __disk_read(__where, __s, __p, __func__, __LINE__)
 #define disk_read_block(__blocks, __p) __disk_read(BLOCKS2BYTES(__blocks), BLOCK_SIZE, __p, __func__, __LINE__)

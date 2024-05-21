@@ -1,14 +1,15 @@
 
 #include <stdint.h>
+
+#include "dcache.h"
+#include "ext4/ext4_dentry.h"
+#include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "ext4/ext4_dentry.h"
-#include "dcache.h"
-#include "inode.h"
 
 extern struct dcache_entry root;
 extern struct ext4_super_block sb;
-extern struct ext4_group_desc *gdesc_table;
+extern struct ext4_group_desc *gdt;
 
 /**
  * Create and open a file
@@ -22,7 +23,6 @@ extern struct ext4_group_desc *gdesc_table;
  */
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     DEBUG("create path %s with mode %o", path, mode);
-    
-    
+
     return 0;
 }

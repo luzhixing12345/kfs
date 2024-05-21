@@ -1,15 +1,11 @@
 
-#include <asm-generic/errno-base.h>
 #include <stdint.h>
 
 #include "disk.h"
-#include "ext4/ext4_super.h"
-#include "fuse.h"
+#include "ext4/ext4.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "super.h"
-
 extern unsigned fuse_capable;
 extern struct ext4_super_block sb;
 
@@ -31,7 +27,7 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
     }
 
     // FIXME: bug by "sudo chown root a.txt"
-    
+
     // if gid < 0, operation not permitted
     if ((signed)gid < 0) {
         INFO("Permission denied");

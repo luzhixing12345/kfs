@@ -14,14 +14,10 @@
 
 #include "common.h"
 #include "disk.h"
-#include "ext4/ext4_basic.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "super.h"
-
-extern struct ext4_super_block sb;
 
 /* We truncate the read size if it exceeds the limits of the file. */
 static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset) {

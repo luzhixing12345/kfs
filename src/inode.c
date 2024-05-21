@@ -7,8 +7,6 @@
  * more details.
  */
 
-#include "inode.h"
-
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -17,17 +15,15 @@
 #include <sys/stat.h>
 
 #include "dcache.h"
+#include "dentry.h"
 #include "disk.h"
-#include "ext4/e4f_dcache.h"
-#include "ext4/ext4_dentry.h"
-#include "ext4/ext4_super.h"
+#include "ext4/ext4.h"
 #include "extents.h"
 #include "logging.h"
-#include "super.h"
 
 extern struct ext4_super_block sb;
 extern struct dcache_entry root;
-extern struct ext4_group_desc *gdesc_table;
+extern struct ext4_group_desc *gdt;
 
 /* These #defines are only relevant for ext2/3 style block indexing */
 #define ADDRESSES_IN_IND_BLOCK  (BLOCK_SIZE / sizeof(uint32_t))
@@ -110,49 +106,6 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-static void dir_ctx_update(struct inode_dir_ctx *ctx, struct ext4_inode *inode, uint32_t lblock) {
-    uint64_t dir_pblock = inode_get_data_pblock(inode, lblock, NULL);
-    disk_read_block(dir_pblock, ctx->buf);
-    ctx->lblock = lblock;
-}
-
-struct inode_dir_ctx *inode_dir_ctx_get(void) {
-    return malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
-}
-
-// reset the directory context
-void inode_dir_ctx_reset(struct inode_dir_ctx *ctx, struct ext4_inode *inode) {
-    dir_ctx_update(ctx, inode, 0);
-}
-
-void inode_dir_ctx_put(struct inode_dir_ctx *ctx) {
-    free(ctx);
-}
-
-// get the dentry from the directory, with a given offset
-struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, uint64_t offset, struct inode_dir_ctx *ctx) {
-    uint64_t lblock = offset / BLOCK_SIZE;
-    uint64_t blk_offset = offset % BLOCK_SIZE;
-
-    uint64_t inode_size = EXT4_INODE_SIZE(inode);
-    DEBUG("offset %lu, lblock %u, blk_offset %u, inode_size %lu", offset, lblock, blk_offset, inode_size);
-    ASSERT(inode_size >= offset);
-    // if the offset is at the end of the inode, return NULL
-    if (inode_size == offset) {
-        return NULL;
-    }
-
-    if (lblock == ctx->lblock) {
-        // if the offset is in the same block, return the dentry
-        DEBUG("ctx lblock match lblock %u", lblock);
-        return (struct ext4_dir_entry_2 *)&ctx->buf[blk_offset];
-    } else {
-        DEBUG("ctx lblock %u not match lblock %u, update", ctx->lblock, lblock);
-        dir_ctx_update(ctx, inode, lblock);
-        return inode_dentry_get(inode, offset, ctx);
-    }
-}
-
 int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
     if (inode_idx == 0) {
         return -ENOENT;
@@ -197,7 +150,7 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
 }
 
 uint32_t inode_get_idx_by_path(const char *path) {
-    struct inode_dir_ctx *dctx = inode_dir_ctx_get();
+    struct inode_dir_ctx *dctx = dir_ctx_malloc();
     uint32_t inode_idx = 0;
     struct ext4_inode inode;
 
@@ -226,14 +179,14 @@ uint32_t inode_get_idx_by_path(const char *path) {
         // load inode by inode_idx
         inode_get_by_number(inode_idx, &inode);
 
-        inode_dir_ctx_reset(dctx, &inode);
-        while ((de = inode_dentry_get(&inode, offset, dctx))) {
+        dir_ctx_init(dctx, &inode);
+        while ((de = dentry_next(&inode, offset, dctx))) {
             offset += de->rec_len;
             if (!de->inode_idx) {
                 INFO("reach the end of the directory");
                 continue;
             }
-            INFO("get dentry %s", de->name);
+            INFO("get dentry %s[%d]", de->name, de->inode_idx);
 
             // if length not equal, continue
             if (path_len != de->name_len || strncmp(path, de->name, path_len)) {
@@ -246,8 +199,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
             inode_idx = de->inode_idx;
 
             // if the entry is a directory, add it to the cache
-            if (de->file_type == EXT4_DE_DIR) {
-                INFO("Add entry %s:%d to cache", path, path_len);
+            if (de->file_type == EXT4_FT_DIR) {
+                INFO("Add dir entry %s:%d to cache", path, path_len);
                 dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
@@ -261,7 +214,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
         }
     } while ((path = strchr(path, '/')));
 
-    inode_dir_ctx_put(dctx);
+    dir_ctx_free(dctx);
     return inode_idx;
 }
 
@@ -275,12 +228,8 @@ uint64_t inode_get_offset(uint32_t inode_idx) {
     uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     ASSERT(group_idx < EXT4_N_BLOCK_GROUPS(sb));
 
-    // get inode table offset by gdesc_table
-    uint64_t off = 0;
-    if (EXT4_DESC_SIZE(sb) == EXT4_DESC_SIZE_64BIT) {
-        off = gdesc_table[group_idx].bg_inode_table_hi;
-    }
-    off = (off << 32) | gdesc_table[group_idx].bg_inode_table_lo;
+    // get inode table offset by gdt
+    uint64_t off = EXT4_DESC_INODE_TABLE(gdt[group_idx]);
     off = BLOCKS2BYTES(off) + (inode_idx % EXT4_INODES_PER_GROUP(sb)) * EXT4_S_INODE_SIZE(sb);
     DEBUG("inode_idx: %u, group_idx: %u, off: %lu", inode_idx, group_idx, off);
     return off;
@@ -333,7 +282,7 @@ uint32_t inode_get_parent_idx_by_path(const char *path) {
     if (last_slashp == path) {
         return 0;
     }
-    *last_slashp = '\0';
+    *(last_slashp + 1) = '\0';
     uint32_t parent_idx = inode_get_idx_by_path(tmp);
     free(tmp);
     return parent_idx;
