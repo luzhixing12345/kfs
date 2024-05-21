@@ -14,6 +14,7 @@
 
 #include "common.h"
 #include "disk.h"
+#include "ext4/ext4_basic.h"
 #include "ext4/ext4_super.h"
 #include "inode.h"
 #include "logging.h"
@@ -26,10 +27,16 @@ extern struct ext4_super_block sb;
 static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset) {
     uint64_t inode_size = EXT4_INODE_SIZE(inode);
 
-    DEBUG("Truncate? %zd/%d", offset + size, inode_size);
+    DEBUG(
+        "inode size = %lu"
+        ", read [%lu:%lu]",
+        inode_size,
+        offset,
+        offset + size);
 
     if (offset >= inode_size) {
-        return 0;
+        ERR("Offset %lu is greater than inode size %lu", offset, inode_size);
+        return -EINVAL;
     }
 
     if ((offset + size) >= inode_size) {
@@ -42,10 +49,10 @@ static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset
 
 /* This function reads all necessary data until the offset is aligned */
 static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t offset) {
+    uint32_t start_lblock = offset / BLOCK_SIZE;
     /* Reason for the -1 is that offset = 0 and size = BLOCK_SIZE is all on the
      * same block.  Meaning that byte at offset + size is not actually read. */
     uint32_t end_lblock = (offset + (size - 1)) / BLOCK_SIZE;
-    uint32_t start_lblock = offset / BLOCK_SIZE;
     uint32_t start_block_off = offset % BLOCK_SIZE;
 
     /* If the size is zero, or we are already aligned, skip over this */
@@ -54,10 +61,11 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
     if (start_block_off == 0)
         return 0;
 
-    uint64_t start_pblock = inode_get_data_pblock(inode, start_lblock, NULL);
+    // FIXME: start_lblock - end_lblock -> pblock_addrs[...]
+    addr_t start_pblock = inode_get_data_pblock(inode, start_lblock, NULL);
 
-    /* Check if all the read request lays on the same block */
     if (start_lblock == end_lblock) {
+        // only one block to read
         disk_read(BLOCKS2BYTES(start_pblock) + start_block_off, size, buf);
         return size;
     } else {
@@ -69,7 +77,17 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
     }
 }
 
+/** Read data from an open file
+ *
+ * Read should return exactly the number of bytes requested except
+ * on EOF or error, otherwise the rest of the data will be
+ * substituted with zeroes.	 An exception to this is when the
+ * 'direct_io' mount option is specified, in which case the return
+ * value of the read system call will reflect the return value of
+ * this operation.
+ */
 int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    // TODO direct_io
     size_t un_offset = (size_t)offset;
     struct ext4_inode inode;
     size_t ret = 0;
@@ -79,13 +97,16 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
     ASSERT(offset >= 0);
 
     DEBUG("read(%s, buf, %zd, %zd, fi->fh=%d)", path, size, un_offset, fi->fh);
-    int inode_get_ret = inode_get_by_number(fi->fh, &inode);
-
-    if (inode_get_ret < 0) {
-        return inode_get_ret;
+    if (inode_get_by_number(fi->fh, &inode) < 0) {
+        DEBUG("fail to get inode %d", fi->fh);
+        return -ENOENT;
     }
 
     size = truncate_size(&inode, size, un_offset);
+    if (size < 0) {
+        ERR("Failed to truncate read(2) size");
+        return size;
+    }
     ret = first_read(&inode, buf, size, un_offset);
 
     buf += ret;

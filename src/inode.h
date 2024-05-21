@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 #include <sys/types.h>
-#include "common.h"
 
+#include "common.h"
 #include "ext4/ext4_dentry.h"
 #include "ext4/ext4_inode.h"
 
@@ -29,15 +29,13 @@ int inode_init(void);
 
 struct dcache_entry *get_cached_inode_idx(const char **path);
 
-typedef enum {
-    RD_ONLY,
-    WR_ONLY,
-    RDWR
-} access_mode_t;
+typedef enum { RD_ONLY, WR_ONLY, RDWR } access_mode_t;
 
 int inode_check_permission(struct ext4_inode *inode, access_mode_t mode);
 
 // find a free inode
 int inode_find_free();
+
+uint32_t inode_get_parent_idx_by_path(const char *path);
 
 #endif

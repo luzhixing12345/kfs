@@ -76,8 +76,9 @@ static uint32_t __inode_get_data_pblock_tind(uint32_t lblock, uint32_t tindex_bl
  * store the length of extent, that is, the number of consecutive pblocks
  * that are also consecutive lblocks (not counting the requested one). */
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len) {
-    if (extent_len)
+    if (extent_len) {
         *extent_len = 1;
+    }
 
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         // inode use ext4 extents
@@ -153,8 +154,9 @@ struct ext4_dir_entry_2 *inode_dentry_get(struct ext4_inode *inode, uint64_t off
 }
 
 int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
-    if (inode_idx == 0)
+    if (inode_idx == 0) {
         return -ENOENT;
+    }
     inode_idx--; /* Inode 0 doesn't exist on disk */
 
     // read disk by inode number
@@ -204,7 +206,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
     DEBUG("Looking up: %s", path);
 
-    // first, find in cache
+    // first try to find in dcache
     struct dcache_entry *dc_entry = get_cached_inode_idx(&path);
     inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
     DEBUG("Found inode_idx %d", inode_idx);
@@ -243,8 +245,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
             INFO("Found entry %s, inode %d", de->name, de->inode_idx);
             inode_idx = de->inode_idx;
 
+            // if the entry is a directory, add it to the cache
             if (de->file_type == EXT4_DE_DIR) {
-                // if the entry is a directory, add it to the cache
                 INFO("Add entry %s:%d to cache", path, path_len);
                 dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
@@ -284,20 +286,55 @@ uint64_t inode_get_offset(uint32_t inode_idx) {
     return off;
 }
 
-// TODO check user permission
 int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     // UNIX permission check
-    struct fuse_context *cntx = fuse_get_context();
+    struct fuse_context *cntx = fuse_get_context();  //获取当前用户的上下文
     uid_t uid = cntx->uid;
     gid_t gid = cntx->gid;
     DEBUG("check inode & user permission on op mode %d", mode);
     DEBUG("inode uid %d, inode gid %d", inode->i_uid, inode->i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);
 
-    INFO("Permission granted");
-    return 0;
+    // 检查用户是否是超级用户
+    if (uid == 0) {
+        INFO("Permission granted");
+        return 0;  // root用户允许所有操作
+    }
+
+    // 根据访问模式、文件所有者检查权限(只读、只写、读写)
+    if (inode->i_uid == uid) {
+        if ((mode == RD_ONLY && (inode->i_mode & S_IRUSR)) || (mode == WR_ONLY && (inode->i_mode & S_IWUSR)) ||
+            (mode == RDWR && ((inode->i_mode & S_IRUSR) && (inode->i_mode & S_IWUSR)))) {
+            INFO("Permission granted");
+            return 0;  // 允许操作
+        }
+    }
+
+    // 组用户检查
+    if (inode->i_gid == gid) {
+        if ((mode == RD_ONLY && (inode->i_mode & S_IRGRP)) || (mode == WR_ONLY && (inode->i_mode & S_IWGRP)) ||
+            (mode == RDWR && ((inode->i_mode & S_IRGRP) && (inode->i_mode & S_IWGRP)))) {
+            INFO("Permission granted");
+            return 0;  // 允许操作
+        }
+    }
+
+    return -EACCES;  // 访问拒绝
 }
 
 int inode_init(void) {
     return dcache_init_root(ROOT_INODE_N);
+}
+
+// find the path's directory inode_idx
+uint32_t inode_get_parent_idx_by_path(const char *path) {
+    char *tmp = strdup(path);
+    char *last_slashp = strrchr(tmp, '/');
+    if (last_slashp == path) {
+        return 0;
+    }
+    *last_slashp = '\0';
+    uint32_t parent_idx = inode_get_idx_by_path(tmp);
+    free(tmp);
+    return parent_idx;
 }

@@ -1,4 +1,5 @@
 
+#include <stdint.h>
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -13,6 +14,14 @@ int op_mkdir(const char *path, mode_t mode) {
     mode = mode | S_IFDIR;
     DEBUG("mkdir %s with mode %o", path, mode);
 
-    // find directory
+    // first find the parent directory of this path
+    uint32_t parent_idx = inode_get_parent_idx_by_path(path);
+    struct ext4_inode parent_inode;
+    if (inode_get_by_number(parent_idx, &parent_inode) < 0) {
+        DEBUG("fail to get parent inode %d", parent_idx);
+        return -ENOENT;
+    }
+    // check if the parent inode has empty space for a new dentry
+    
     return 0;
 }
