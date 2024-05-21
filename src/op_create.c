@@ -7,6 +7,8 @@
 #include "inode.h"
 
 extern struct dcache_entry root;
+extern struct ext4_super_block sb;
+extern struct ext4_group_desc *gdesc_table;
 
 /**
  * Create and open a file
@@ -19,11 +21,8 @@ extern struct dcache_entry root;
  * will be called instead.
  */
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-    DEBUG("create path %s with flags %o", path, fi->flags);
-    struct dcache_entry *dc_entry = get_cached_inode_idx(path);
-    uint32_t inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
-    DEBUG("Found inode_idx %d", inode_idx);
-
-    // uint32_t pflags = 0;
+    DEBUG("create path %s with mode %o", path, mode);
+    
+    
     return 0;
 }

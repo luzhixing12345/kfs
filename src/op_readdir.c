@@ -40,7 +40,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     while ((dentry = inode_dentry_get(&inode, offset, dctx))) {
         offset += dentry->rec_len;
 
-        if (!dentry->inode) {
+        if (!dentry->inode_idx) {
             /* It seems that is possible to have a dummy entry like this at the
              * begining of a block of dentries.  Looks like skipping is the
              * reasonable thing to do. */

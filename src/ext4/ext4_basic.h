@@ -14,4 +14,6 @@
 #define __u16  uint16_t
 #define __u8   uint8_t
 
+#define addr_t uint64_t
+
 #endif

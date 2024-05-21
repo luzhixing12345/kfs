@@ -7,14 +7,19 @@
  * more details.
  */
 
+#include "dcache.h"
+
 #include <stdlib.h>
 #include <string.h>
 
-#include "dcache.h"
 #include "logging.h"
 
 #define DCACHE_ENTRY_CALLOC() calloc(1, sizeof(struct dcache_entry))
 #define DCACHE_ENTRY_LIFE     8
+
+#ifdef DEBUG_STR_BUF
+extern char str_buf[256];
+#endif
 
 /* Locking for the dcache is tricky.  What we try to do is to keep insertions
  * and lookups threadsafe by atomic updates.  That keeps the tree safe, but
@@ -57,7 +62,6 @@ int dcache_init_root(uint32_t n) {
  * `-----------´       `----------------´
  */
 struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n) {
-    DEBUG("Inserting %s,%d to dcache", name, namelen);
 
     /* TODO: Deal with names that exceed the allocated size */
     if (namelen + 1 > DCACHE_ENTRY_NAME_LEN)
@@ -88,16 +92,9 @@ struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name
     return new_entry;
 }
 
-/**
- * @brief Lookup a cache entry for a given file name.  Return value is a struct pointer
- * that can be used to both obtain the inode number and insert further child
- * entries.
- *
- * @param parent
- * @param name
- * @param namelen
- * @return struct dcache_entry* if found, NULL otherwise
- */
+// Lookup a cache entry for a given file name.  Return value is a struct pointer
+// that can be used to both obtain the inode number and insert further child
+// entries.
 struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name, int namelen) {
     /* TODO: Prune entries by using the LRU counter */
     if (parent == NULL) {
@@ -105,16 +102,18 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
     }
 
     if (!parent->childs) {
-        DEBUG("Looking up %s: Not found (no childs)", name);
+        DEBUG("directory has no cached entry");
         return NULL;
     }
 
+    DEBUG("Looking up dcache entry %s:%d", name, namelen);
     /* Iterate the list of siblings to see if there is any match */
     struct dcache_entry *iter = parent->childs;
     do {
+        DEBUG("get dcache entry %s", iter->name);
         if (strncmp(iter->name, name, namelen) == 0 && iter->name[namelen] == 0) {
+            INFO("match dcache entry %s == %s:%d", iter->name, name, namelen);
             parent->childs = iter;
-            INFO("get dcache entry %s", name);
             return iter;
         }
 

@@ -28,5 +28,6 @@ int op_access(const char *path, int mask) {
         }
     }
     INFO("Permission granted");
+    // TODO: add current directory in cache
     return err;
 }

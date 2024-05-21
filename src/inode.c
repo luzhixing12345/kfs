@@ -19,6 +19,7 @@
 #include "dcache.h"
 #include "disk.h"
 #include "ext4/e4f_dcache.h"
+#include "ext4/ext4_dentry.h"
 #include "ext4/ext4_super.h"
 #include "extents.h"
 #include "logging.h"
@@ -162,17 +163,6 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
     return 0;
 }
 
-int inode_set_by_number(uint32_t n, struct ext4_inode *inode) {
-    if (n == 0)
-        return -ENOENT;
-    n--; /* Inode 0 doesn't exist on disk */
-
-    // write disk by inode number
-    uint64_t off = inode_get_offset(n);
-    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
-    return 0;
-}
-
 static uint8_t get_path_token_len(const char *path) {
     uint8_t len = 0;
     while (path[len] != '/' && path[len]) {
@@ -181,24 +171,23 @@ static uint8_t get_path_token_len(const char *path) {
     return len;
 }
 
-struct dcache_entry *get_cached_inode_idx(const char *path) {
+struct dcache_entry *get_cached_inode_idx(const char **path) {
     struct dcache_entry *next = NULL;
     struct dcache_entry *ret;
 
-    // /home/kamilu/kfs/test/0001-sanity-small.sh
-    // |  1 |   2  | 3 |  4 |        5           |
     do {
-        skip_trailing_backslash(path);
-        uint8_t path_len = get_path_token_len(path);
+        *path = skip_trailing_backslash(*path);
+        uint8_t path_len = get_path_token_len(*path);
         ret = next;
 
         if (path_len == 0) {
             return ret;
         }
 
-        next = dcache_lookup(ret, path, path_len);
+        next = dcache_lookup(ret, *path, path_len);
         if (next) {
-            path += path_len;
+            INFO("Found entry in cache: %s", next->name);
+            *path += path_len;
         }
     } while (next != NULL);
 
@@ -216,7 +205,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
     DEBUG("Looking up: %s", path);
 
     // first, find in cache
-    struct dcache_entry *dc_entry = get_cached_inode_idx(path);
+    struct dcache_entry *dc_entry = get_cached_inode_idx(&path);
     inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
     DEBUG("Found inode_idx %d", inode_idx);
 
@@ -237,21 +226,26 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
         inode_dir_ctx_reset(dctx, &inode);
         while ((de = inode_dentry_get(&inode, offset, dctx))) {
-            DEBUG("get dentry %s", de->name);
             offset += de->rec_len;
+            if (!de->inode_idx) {
+                INFO("reach the end of the directory");
+                continue;
+            }
+            INFO("get dentry %s", de->name);
 
-            // if length not equal or inode is 0, it's not a valid entry, continue
-            if (path_len != de->name_len || !de->inode || strncmp(path, de->name, path_len)) {
-                DEBUG("not match dentry %s", de->name);
+            // if length not equal, continue
+            if (path_len != de->name_len || strncmp(path, de->name, path_len)) {
+                INFO("not match dentry %s", de->name);
                 continue;
             }
 
             // Found the entry
-            INFO("Found entry %s, inode %d", de->name, de->inode);
-            inode_idx = de->inode;
+            INFO("Found entry %s, inode %d", de->name, de->inode_idx);
+            inode_idx = de->inode_idx;
 
-            if (S_ISDIR(inode.i_mode)) {
+            if (de->file_type == EXT4_DE_DIR) {
                 // if the entry is a directory, add it to the cache
+                INFO("Add entry %s:%d to cache", path, path_len);
                 dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
@@ -260,6 +254,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
         /* Couldn't find the entry */
         if (de == NULL) {
             inode_idx = 0;
+            INFO("Couldn't find entry %s", path);
             break;
         }
     } while ((path = strchr(path, '/')));
