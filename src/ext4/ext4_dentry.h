@@ -29,7 +29,7 @@
 
 #include "ext4_basic.h"
 
-#define EXT4_NAME_LEN 255
+#define EXT4_NAME_LEN     255
 #define EXT4_DE_BASE_SIZE 8
 
 // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Directory_Entries
@@ -60,15 +60,28 @@ struct ext4_dir_entry_2 {
 #define EXT4_FT_SOCK     6
 #define EXT4_FT_SYMLINK  7
 
-#define EXT4_FT_DIR_CSUM	0xDE
-
 /*
  * EXT4_DIR_PAD defines the directory entries boundaries
  *
  * NOTE: It must be a multiple of 4
  */
-#define EXT4_DIR_PAD			4
-#define EXT4_DIR_ROUND			(EXT4_DIR_PAD - 1)
-#define EXT4_MAX_REC_LEN		((1<<16)-1)
+#define EXT4_DIR_PAD     4
+#define EXT4_DIR_ROUND   (EXT4_DIR_PAD - 1)
+#define EXT4_MAX_REC_LEN ((1 << 16) - 1)
+
+// an entry tail will be placed at the end of a directory entry
+// it is used to store the checksum of the entry
+// it's always 12 bytes long, and
+
+// https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Directory_Entries
+struct ext4_dir_entry_tail {
+    __le32 det_reserved_zero1;  // Inode number, which must be zero.
+    __le16 det_rec_len;         // Length of this directory entry, which must be 12
+    __u8 det_reserved_zero2;    // Length of the file name, which must be zero.
+    __u8 det_reserved_ft;       // File type, which must be 0xDE.
+    __le32 det_checksum;        // Directory leaf block checksum.
+};
+
+#define EXT4_FT_DIR_CSUM 0xDE
 
 #endif

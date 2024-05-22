@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_dentry.h"
 #include "logging.h"
 
 static void dir_ctx_update(struct inode_dir_ctx *ctx, struct ext4_inode *inode, uint32_t lblock) {
@@ -18,8 +20,8 @@ struct inode_dir_ctx *dir_ctx_malloc(void) {
     return malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
 }
 
-// reset the directory context
 void dir_ctx_init(struct inode_dir_ctx *ctx, struct ext4_inode *inode) {
+    // preload the first logic data block of inode
     dir_ctx_update(ctx, inode, 0);
 }
 
@@ -52,7 +54,7 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset, 
 }
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode) {
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint64_t *lblock) {
     uint64_t offset = 0;
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_dir_entry_2 *de_next = NULL;
@@ -60,11 +62,13 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode) {
     dir_ctx_init(dctx, inode);
     while ((de_next = dentry_next(inode, offset, dctx))) {
         offset += de_next->rec_len;
-        if (!de_next->inode_idx) {
-            INFO("found the last dentry");
+        if (de_next->inode_idx == 0 && de_next->name_len == 0) {
+            // reach the ext4_dir_entry_tail
             dir_ctx_free(dctx);
-            // de_next->inode_idx == 0 means its a dummy entry
-            // actually de is the last dentry
+
+            ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
+            INFO("found the last dentry");
+            *lblock = offset / BLOCK_SIZE;
             return de;
         }
         de = de_next;
@@ -76,6 +80,18 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode) {
 
 // create a dentry by name and inode_idx
 int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx) {
+    uint16_t left_space = de->rec_len;
+    // update de rec_len to be the real rec_len
+    de->rec_len = DE_REAL_REC_LEN(de);
+    // find the next de starting position
+    struct ext4_dir_entry_2 new_de;
+    new_de.inode_idx = inode_idx;
+    new_de.name_len = strlen(name);
+    new_de.rec_len = left_space - de->rec_len;  // left space was set in the new de
+    strncpy(new_de.name, name, new_de.name_len);
+    new_de.name[new_de.name_len] = 0;
+    INFO("create new dentry %s[%u]", new_de.name, inode_idx);
+    INFO("left space %u", new_de.rec_len);
     return 0;
 }
 

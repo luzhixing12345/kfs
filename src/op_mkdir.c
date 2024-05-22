@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "dentry.h"
+#include "ext4/ext4_basic.h"
 #include "logging.h"
 #include "bitmap.h"
 #include "ops.h"
@@ -29,15 +30,17 @@ int op_mkdir(const char *path, mode_t mode) {
     }
 
     // check if the parent inode has empty space for a new dentry
-    struct ext4_dir_entry_2 *de = dentry_last(&parent_inode);
+    uint64_t lblock; // for disk write back
+    struct ext4_dir_entry_2 *de = dentry_last(&parent_inode, &lblock);
     if (de == NULL) {
         ERR("parent inode has no dentry");
         return -ENOENT;
     }
     char *dir_name = strrchr(path, '/') + 1;
-    __u8 rec_len = EXT4_DE_BASE_SIZE + strlen(dir_name);
-    INFO("dir_name %s, rec_len %u, last de left space %u", dir_name, rec_len, de->rec_len);
-    if (de->rec_len < rec_len) {
+    __le16 rec_len = ALIGN_TO_DENTRY(EXT4_DE_BASE_SIZE + strlen(dir_name));
+    __le16 left_space = de->rec_len - DE_REAL_REC_LEN(de);
+    INFO("dir_name %s, rec_len %u, last de left space %u", dir_name, rec_len, left_space);
+    if (left_space < rec_len) {
         ERR("No space for new dentry");
         return -ENOSPC;
     }
@@ -47,12 +50,24 @@ int op_mkdir(const char *path, mode_t mode) {
         ERR("No free inode");
         return -ENOSPC;
     }
+    
+    // find an empty data block
+    uint64_t block_idx = bitmap_block_find(dir_idx);
+    if (block_idx == 0) {
+        ERR("No free block");
+        return -ENOSPC;
+    }
+
+    INFO("new dentry %s, dir_idx %u, block_idx %u", dir_name, dir_idx, block_idx);
+    INFO("start to create new dentry and new inode");
 
     // create new dentry
     if (dentry_create(de, dir_name, dir_idx) < 0) {
         ERR("fail to create dentry");
         return -ENOENT;
     }
+
+    // dentry_write_back(uint64_t pblock, uint64_t block_id)
 
     return 0;
 }

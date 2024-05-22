@@ -29,7 +29,7 @@ int bitmap_init() {
 }
 
 /**
- * @brief find the first free inode in inode bitmap
+ * @brief find a free inode in inode bitmap
  *
  * @param inode_idx parent inode_idx
  * @return uint32_t inode_idx, 0 if no free inode
@@ -41,6 +41,8 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
 
     DEBUG("finding free inode in group %u", group_idx);
 
+    // TODO: better inode select
+    // for now, just simply find the first free inode in i_bitmap
     uint32_t new_inode_idx = 0;
     for (uint32_t i = 0; i < EXT4_INODES_PER_GROUP(sb); i++) {
         if (BIT(i_bitmap[group_idx], i) == 0) {
@@ -64,4 +66,25 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
 
     ERR("no free inode");
     return new_inode_idx;
+}
+
+uint64_t bitmap_block_find(uint32_t inode_idx) {
+    uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
+    uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
+    ASSERT(group_idx < group_num);
+
+    uint64_t new_block_idx = 0;
+    for (uint32_t i = 0; i < EXT4_BLOCKS_PER_GROUP(sb); i++) {
+        if (BIT(d_bitmap[group_idx], i) == 0) {
+            new_block_idx = (group_idx * EXT4_BLOCKS_PER_GROUP(sb)) + i + 1;
+            INFO("found free block %u", new_block_idx);
+            return new_block_idx;
+        }
+    }
+
+    // FIXME: temporary solution, assume that find a free block in the same group as inode
+    // TODO: better block select
+
+    ERR("no free block");
+    return new_block_idx;
 }
