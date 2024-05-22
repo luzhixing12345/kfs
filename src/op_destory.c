@@ -1,12 +1,15 @@
 
 #include <stdlib.h>
-#include "ext4/ext4_basic.h"
-#include "ops.h"
-#include "logging.h"
-#include "ext4/ext4.h"
+
+#include "cache.h"
 #include "disk.h"
+#include "ext4/ext4.h"
+#include "ext4/ext4_basic.h"
+#include "inode.h"
+#include "logging.h"
+#include "ops.h"
 
-
+extern struct inode_dir_ctx *dctx;
 
 void op_destory(void *data) {
     DEBUG("ext4 fuse fs destory");
@@ -27,6 +30,8 @@ void op_destory(void *data) {
         free(d_bitmap);
     }
     INFO("free data bitmap done");
+    free(dctx);
+    INFO("free dctx done");
     disk_write(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
     INFO("write back super block done");
     INFO("ext4 fuse fs destory done");

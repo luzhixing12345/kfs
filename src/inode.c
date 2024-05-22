@@ -14,7 +14,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "dcache.h"
+#include "cache.h"
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
@@ -24,17 +24,7 @@
 extern struct ext4_super_block sb;
 extern struct dcache_entry root;
 extern struct ext4_group_desc *gdt;
-
-/* These #defines are only relevant for ext2/3 style block indexing */
-#define ADDRESSES_IN_IND_BLOCK  (BLOCK_SIZE / sizeof(uint32_t))
-#define ADDRESSES_IN_DIND_BLOCK (ADDRESSES_IN_IND_BLOCK * ADDRESSES_IN_IND_BLOCK)
-#define ADDRESSES_IN_TIND_BLOCK (ADDRESSES_IN_DIND_BLOCK * ADDRESSES_IN_IND_BLOCK)
-#define MAX_IND_BLOCK           (EXT4_NDIR_BLOCKS + ADDRESSES_IN_IND_BLOCK)
-#define MAX_DIND_BLOCK          (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
-#define MAX_TIND_BLOCK          (MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
-
-#define ROOT_INODE_N            2  // root inode_idx
-#define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
+extern struct inode_dir_ctx *dctx;
 
 static const char *skip_trailing_backslash(const char *path) {
     while (IS_PATH_SEPARATOR(*path)) path++;
@@ -150,7 +140,7 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
 }
 
 uint32_t inode_get_idx_by_path(const char *path) {
-    struct inode_dir_ctx *dctx = dir_ctx_malloc();
+    
     uint32_t inode_idx = 0;
     struct ext4_inode inode;
 
@@ -214,7 +204,6 @@ uint32_t inode_get_idx_by_path(const char *path) {
         }
     } while ((path = strchr(path, '/')));
 
-    dir_ctx_free(dctx);
     return inode_idx;
 }
 
@@ -269,10 +258,6 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     }
 
     return -EACCES;  // 访问拒绝
-}
-
-int inode_init(void) {
-    return dcache_init_root(ROOT_INODE_N);
 }
 
 // find the path's directory inode_idx

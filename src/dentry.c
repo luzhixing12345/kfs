@@ -16,17 +16,9 @@ static void dir_ctx_update(struct inode_dir_ctx *ctx, struct ext4_inode *inode, 
     ctx->lblock = lblock;
 }
 
-struct inode_dir_ctx *dir_ctx_malloc(void) {
-    return malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
-}
-
 void dir_ctx_init(struct inode_dir_ctx *ctx, struct ext4_inode *inode) {
     // preload the first logic data block of inode
     dir_ctx_update(ctx, inode, 0);
-}
-
-void dir_ctx_free(struct inode_dir_ctx *ctx) {
-    free(ctx);
 }
 
 // get the dentry from the directory, with a given offset

@@ -16,7 +16,9 @@
 #include "ext4/ext4_basic.h"
 #include "inode.h"
 #include "logging.h"
+#include "cache.h"
 #include "ops.h"
+
 unsigned fuse_capable;
 
 struct ext4_super_block sb;
@@ -62,7 +64,6 @@ void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     super_fill();        // superblock
     super_group_fill();  // group descriptors
     bitmap_init();
-    inode_init();  // root inode
-
+    dcache_init();
     return NULL;
 }

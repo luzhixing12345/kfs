@@ -7,19 +7,16 @@
  * more details.
  */
 
-#include "dcache.h"
+#include "cache.h"
 
 #include <stdlib.h>
 #include <string.h>
-
+#include "inode.h"
 #include "logging.h"
+#include "ext4/ext4.h"
 
 #define DCACHE_ENTRY_CALLOC() calloc(1, sizeof(struct dcache_entry))
 #define DCACHE_ENTRY_LIFE     8
-
-#ifdef DEBUG_STR_BUF
-extern char str_buf[256];
-#endif
 
 /* Locking for the dcache is tricky.  What we try to do is to keep insertions
  * and lookups threadsafe by atomic updates.  That keeps the tree safe, but
@@ -35,6 +32,13 @@ extern char str_buf[256];
  * All this hassle is basically to avoid copying around strings. */
 
 struct dcache_entry root;
+struct inode_dir_ctx *dctx;
+
+int dcache_init() {
+    dcache_init_root(ROOT_INODE_N);
+    dctx = malloc(sizeof(struct inode_dir_ctx) + BLOCK_SIZE);
+    return 0;
+}
 
 int dcache_init_root(uint32_t n) {
     if (root.inode_idx) {
@@ -62,7 +66,6 @@ int dcache_init_root(uint32_t n) {
  * `-----------´       `----------------´
  */
 struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n) {
-
     /* TODO: Deal with names that exceed the allocated size */
     if (namelen + 1 > DCACHE_ENTRY_NAME_LEN)
         return NULL;

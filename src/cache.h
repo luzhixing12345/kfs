@@ -25,4 +25,6 @@ struct dcache_entry {
     char name[DCACHE_ENTRY_NAME_LEN];
 };
 
+int dcache_init();
+
 #endif

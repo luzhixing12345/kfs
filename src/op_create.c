@@ -1,7 +1,7 @@
 
 #include <stdint.h>
 
-#include "dcache.h"
+#include "cache.h"
 #include "ext4/ext4_dentry.h"
 #include "inode.h"
 #include "logging.h"
