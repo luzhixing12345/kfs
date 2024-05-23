@@ -5,24 +5,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "disk.h"
+#include "cache.h"
 #include "ext4/ext4.h"
-#include "ext4/ext4_dentry.h"
+#include "inode.h"
 #include "logging.h"
 
-static void dir_ctx_update(struct inode_dir_ctx *ctx, struct ext4_inode *inode, uint32_t lblock) {
-    uint64_t dir_pblock = inode_get_data_pblock(inode, lblock, NULL);
-    disk_read_block(dir_pblock, ctx->buf);
-    ctx->lblock = lblock;
-}
-
-void dir_ctx_init(struct inode_dir_ctx *ctx, struct ext4_inode *inode) {
-    // preload the first logic data block of inode
-    dir_ctx_update(ctx, inode, 0);
-}
+extern struct dcache *dcache;
 
 // get the dentry from the directory, with a given offset
-struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset, struct inode_dir_ctx *ctx) {
+struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset) {
     uint64_t lblock = offset / BLOCK_SIZE;
     uint64_t blk_offset = offset % BLOCK_SIZE;
 
@@ -34,30 +25,27 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset, 
         return NULL;
     }
 
-    if (lblock == ctx->lblock) {
+    if (lblock == dcache->lblock) {
         // if the offset is in the same block, return the dentry
-        DEBUG("ctx lblock match lblock %u", lblock);
-        return (struct ext4_dir_entry_2 *)&ctx->buf[blk_offset];
+        DEBUG("dctx lblock match lblock %u", lblock);
+        return (struct ext4_dir_entry_2 *)&dcache->buf[blk_offset];
     } else {
-        DEBUG("ctx lblock %u not match lblock %u, update", ctx->lblock, lblock);
-        dir_ctx_update(ctx, inode, lblock);
-        return dentry_next(inode, offset, ctx);
+        DEBUG("dctx lblock %u not match lblock %u, update", dcache->lblock, lblock);
+        dcache_update(inode, lblock);
+        return dentry_next(inode, offset);
     }
 }
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint64_t *lblock) {
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t parent_idx, uint64_t *lblock) {
     uint64_t offset = 0;
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_dir_entry_2 *de_next = NULL;
-    struct inode_dir_ctx *dctx = dir_ctx_malloc();
-    dir_ctx_init(dctx, inode);
-    while ((de_next = dentry_next(inode, offset, dctx))) {
+    dcache_init(inode, parent_idx);
+    while ((de_next = dentry_next(inode, offset))) {
         offset += de_next->rec_len;
         if (de_next->inode_idx == 0 && de_next->name_len == 0) {
             // reach the ext4_dir_entry_tail
-            dir_ctx_free(dctx);
-
             ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
             INFO("found the last dentry");
             *lblock = offset / BLOCK_SIZE;

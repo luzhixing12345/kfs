@@ -31,7 +31,7 @@ int op_mkdir(const char *path, mode_t mode) {
 
     // check if the parent inode has empty space for a new dentry
     uint64_t lblock; // for disk write back
-    struct ext4_dir_entry_2 *de = dentry_last(&parent_inode, &lblock);
+    struct ext4_dir_entry_2 *de = dentry_last(&parent_inode, parent_idx, &lblock);
     if (de == NULL) {
         ERR("parent inode has no dentry");
         return -ENOENT;

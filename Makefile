@@ -7,7 +7,9 @@ SRC_PATH = src
 SRC_EXT = c
 THIRD_LIB = fuse3
 
-CFLAGS = -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
+CSTD = -std=gnu2x
+CFLAGS = $(CSTD)
+CFLAGS += -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
 
 # 使用 GNU C 扩展语法, __FILE__ 和 __LINE__ 变量
 CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral

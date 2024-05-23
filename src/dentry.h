@@ -11,10 +11,10 @@
 #define DE_REAL_REC_LEN(de)  ((__le16)ALIGN_TO_DENTRY((de)->name_len + EXT4_DE_BASE_SIZE))
 
 // get the dentry from the directory, with a given offset
-struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset, struct inode_dir_ctx *ctx);
+struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset);
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint64_t *lblock);
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t parent_idx, uint64_t *lblock);
 
 /**
  * @brief create a dentry by name and inode_idx

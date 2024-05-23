@@ -9,7 +9,8 @@
 #include "logging.h"
 #include "ops.h"
 
-extern struct inode_dir_ctx *dctx;
+extern struct dcache *dcache;
+extern struct icache *icache;
 
 void op_destory(void *data) {
     DEBUG("ext4 fuse fs destory");
@@ -30,8 +31,11 @@ void op_destory(void *data) {
         free(d_bitmap);
     }
     INFO("free data bitmap done");
-    free(dctx);
-    INFO("free dctx done");
+    free(dcache);
+    INFO("free dcache done");
+    free(icache->entries);
+    free(icache);
+    INFO("free icache done");
     disk_write(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
     INFO("write back super block done");
     INFO("ext4 fuse fs destory done");

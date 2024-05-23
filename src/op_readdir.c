@@ -9,10 +9,13 @@
 
 #include <string.h>
 
+#include "cache.h"
 #include "common.h"
 #include "dentry.h"
 #include "logging.h"
 #include "ops.h"
+
+extern struct dcache *dcache;
 
 static char *get_printable_name(char *s, struct ext4_dir_entry_2 *entry) {
     memcpy(s, entry->name, entry->name_len);
@@ -30,14 +33,14 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     struct ext4_inode inode;
 
     /* We can use inode_get_by_number, but first we need to implement opendir */
-    if (inode_get_by_path(path, &inode) < 0) {
+    uint32_t inode_idx;
+    if (inode_get_by_path(path, &inode, &inode_idx) < 0) {
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }
 
-    struct inode_dir_ctx *dctx = dir_ctx_malloc();
-    dir_ctx_init(dctx, &inode);
-    while ((de = dentry_next(&inode, offset, dctx))) {
+    dcache_init(&inode, inode_idx);
+    while ((de = dentry_next(&inode, offset))) {
         offset += de->rec_len;
 
         if (!de->inode_idx) {
@@ -54,7 +57,6 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
                 break;
         }
     }
-    dir_ctx_free(dctx);
 
     return 0;
 }

@@ -9,14 +9,13 @@
 
 #include <stdio.h>
 #define _XOPEN_SOURCE 500
-#include "disk.h"
-
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "disk.h"
 #include "logging.h"
 
 #ifdef __FreeBSD__
@@ -126,34 +125,34 @@ int __disk_write(off_t where, size_t size, void *p, const char *func, int line) 
     return pwrite_ret;
 }
 
-int disk_ctx_create(struct disk_ctx *ctx, off_t where, size_t size, uint32_t len) {
-    ASSERT(ctx); /* Should be user allocated */
+int disk_ctx_create(struct disk_ctx *dctx, off_t where, size_t size, uint32_t len) {
+    ASSERT(dctx); /* Should be user allocated */
     ASSERT(size);
 
-    ctx->cur = where;
-    ctx->size = size * len;
-    DEBUG("New disk context: 0x%jx +0x%jx", ctx->cur, ctx->size);
+    dctx->cur = where;
+    dctx->size = size * len;
+    DEBUG("New disk context: 0x%jx +0x%jx", dctx->cur, dctx->size);
 
     return 0;
 }
 
-int __disk_ctx_read(struct disk_ctx *ctx, size_t size, void *p, const char *func, int line) {
+int __disk_ctx_read(struct disk_ctx *dctx, size_t size, void *p, const char *func, int line) {
     int ret = 0;
 
-    ASSERT(ctx->size);
-    if (ctx->size == 0) {
+    ASSERT(dctx->size);
+    if (dctx->size == 0) {
         WARNING("Using a context with no bytes left");
         return ret;
     }
 
     /* Truncate if there are too many bytes requested */
-    if (size > ctx->size) {
-        size = ctx->size;
+    if (size > dctx->size) {
+        size = dctx->size;
     }
 
-    ret = __disk_read(ctx->cur, size, p, func, line);
-    ctx->size -= ret;
-    ctx->cur += ret;
+    ret = __disk_read(dctx->cur, size, p, func, line);
+    dctx->size -= ret;
+    dctx->cur += ret;
 
     return ret;
 }

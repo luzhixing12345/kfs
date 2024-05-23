@@ -11,12 +11,12 @@
 #include <stdlib.h>
 
 #include "bitmap.h"
+#include "cache.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_basic.h"
 #include "inode.h"
 #include "logging.h"
-#include "cache.h"
 #include "ops.h"
 
 unsigned fuse_capable;
@@ -64,6 +64,6 @@ void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     super_fill();        // superblock
     super_group_fill();  // group descriptors
     bitmap_init();
-    dcache_init();
+    cache_init();
     return NULL;
 }

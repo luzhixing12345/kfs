@@ -20,7 +20,7 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
 
     struct ext4_inode inode;
     memset(stbuf, 0, sizeof(struct stat));  // clear the struct
-    if (inode_get_by_path(path, &inode) < 0) {
+    if (inode_get_by_path(path, &inode, NULL) < 0) {
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }

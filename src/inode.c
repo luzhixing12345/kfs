@@ -18,13 +18,14 @@
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_inode.h"
 #include "extents.h"
 #include "logging.h"
 
 extern struct ext4_super_block sb;
 extern struct dcache_entry root;
 extern struct ext4_group_desc *gdt;
-extern struct inode_dir_ctx *dctx;
+extern struct dcache *dcache;
 
 static const char *skip_trailing_backslash(const char *path) {
     while (IS_PATH_SEPARATOR(*path)) path++;
@@ -102,9 +103,21 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
     }
     inode_idx--; /* Inode 0 doesn't exist on disk */
 
+    // first try to find in icache
+    struct ext4_inode *ic_entry = icache_find(inode_idx);
+    if (ic_entry) {
+        DEBUG("Found inode_idx %d in icache", inode_idx);
+        memcpy(inode, ic_entry, sizeof(struct ext4_inode));
+        return 0;
+    }
+
     // read disk by inode number
     uint64_t off = inode_get_offset(inode_idx);
     disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
+
+    // add to icache
+    DEBUG("Add inode_idx %d to icache", inode_idx);
+    icache_insert(inode_idx, inode);
     return 0;
 }
 
@@ -140,7 +153,6 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
 }
 
 uint32_t inode_get_idx_by_path(const char *path) {
-    
     uint32_t inode_idx = 0;
     struct ext4_inode inode;
 
@@ -168,9 +180,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
         // load inode by inode_idx
         inode_get_by_number(inode_idx, &inode);
-
-        dir_ctx_init(dctx, &inode);
-        while ((de = dentry_next(&inode, offset, dctx))) {
+        dcache_init(&inode, inode_idx);
+        while ((de = dentry_next(&inode, offset))) {
             offset += de->rec_len;
             if (!de->inode_idx) {
                 INFO("reach the end of the directory");
@@ -207,9 +218,15 @@ uint32_t inode_get_idx_by_path(const char *path) {
     return inode_idx;
 }
 
-int inode_get_by_path(const char *path, struct ext4_inode *inode) {
-    uint32_t inode_idx = inode_get_idx_by_path(path);
-    return inode_get_by_number(inode_idx, inode);
+int inode_get_by_path(const char *path, struct ext4_inode *inode, uint32_t *inode_idx) {
+    uint32_t i_idx = inode_get_idx_by_path(path);
+    if (i_idx == 0) {
+        return -ENOENT;
+    }
+    if (inode_idx != NULL) {
+        *inode_idx = i_idx;
+    }
+    return inode_get_by_number(i_idx, inode);
 }
 
 uint64_t inode_get_offset(uint32_t inode_idx) {

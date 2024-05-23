@@ -19,21 +19,10 @@
 #define ROOT_INODE_N            2  // root inode_idx
 #define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
-// inode directory context
-struct inode_dir_ctx {
-    uint32_t inode_idx;
-    uint32_t lblock; /* Currently buffered lblock */
-    uint8_t buf[];
-};
-
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);
 
-struct inode_dir_ctx *dir_ctx_malloc(void);
-void dir_ctx_free(struct inode_dir_ctx *);
-void dir_ctx_init(struct inode_dir_ctx *ctx, struct ext4_inode *inode);
-
 int inode_get_by_number(uint32_t n, struct ext4_inode *inode);
-int inode_get_by_path(const char *path, struct ext4_inode *inode);
+int inode_get_by_path(const char *path, struct ext4_inode *inode, uint32_t *inode_idx);
 uint64_t inode_get_offset(uint32_t inode_idx);
 uint32_t inode_get_idx_by_path(const char *path);
 
