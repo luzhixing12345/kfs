@@ -52,6 +52,20 @@ struct ext4_group_desc {
     __u32 bg_reserved2[3];          /* 保留的未使用空间 */
 };
 
+// use bg_reserved2[0] to check if the group is clean(0) or dirty(1)
+#define EXT4_GDT_CLEAN                     0
+#define EXT4_GDT_DIRTY                     1
+
+#define EXT4_GDT_DIRTY_FLAG(group)         ((group)->bg_reserved2[0])
+#define EXT4_GDT_SET_CLEAN(group)     ((group)->bg_reserved2[0] = EXT4_GDT_CLEAN)
+#define EXT4_GDT_SET_DIRTY(group)     ((group)->bg_reserved2[0] = EXT4_GDT_DIRTY)
+
+#define EXT4_GDT_FREE_BLOCKS(group)   ((group)->bg_free_blocks_count_lo | ((group)->bg_free_blocks_count_hi << 16))
+#define EXT4_GDT_FREE_INODES(group)   ((group)->bg_free_inodes_count_lo | ((group)->bg_free_inodes_count_hi << 16))
+#define EXT4_GDT_USED_DIRS(group)     ((group)->bg_used_dirs_count_lo | ((group)->bg_used_dirs_count_hi << 16))
+// what's the difference between free and unused?
+#define EXT4_GDT_ITABLE_UNUSED(group) ((group)->bg_itable_unused_lo | ((group)->bg_itable_unused_hi << 16))
+#define EXT4_GDT_MAX_USED_DIRS        0xffffffff
 /*
  * Structure of the super block
    https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#The_Super_Block

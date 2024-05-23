@@ -15,6 +15,7 @@
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_basic.h"
+#include "ext4/ext4_super.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -43,13 +44,13 @@ int super_fill(void) {
 
 int super_group_fill(void) {
     int group_num = EXT4_N_BLOCK_GROUPS(sb);
-    gdt = malloc(sizeof(struct ext4_group_desc) * group_num);
-    off_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
+    gdt = calloc(group_num, sizeof(struct ext4_group_desc));
+    uint64_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
 
     for (uint32_t i = 0; i < group_num; i++) {
-        /* disk advances EXT4_DESC_SIZE(sb), pointer sizeof(struct...).
-         * These values might be different!!! */
         disk_read(bg_off, EXT4_DESC_SIZE(sb), &gdt[i]);
+        // bg_reserved2[3] is not used, we use it as a flag to check if the group is clean(0) or dirty(1)
+        EXT4_GDT_SET_CLEAN(&gdt[i]);
         bg_off += EXT4_DESC_SIZE(sb);
     }
     return 0;

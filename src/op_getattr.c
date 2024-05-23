@@ -54,6 +54,6 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
     stbuf->st_mtime = inode->i_mtime;
     stbuf->st_ctime = inode->i_ctime;
 
-    I_CACHED_UPDATE_CNT(inode);
+    ICACHE_UPDATE_CNT(inode);
     return 0;
 }

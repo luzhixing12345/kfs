@@ -38,12 +38,13 @@ int inode_find_free();
 /**
  * @brief create a new inode
  * 
+ * @param inode_idx 
  * @param mode 
  * @param pblock 
  * @param inode 
  * @return int 
  */
-int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode);
+int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode);
 
 uint32_t inode_get_parent_idx_by_path(const char *path);
 

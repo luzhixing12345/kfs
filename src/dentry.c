@@ -13,7 +13,7 @@
 extern struct dcache *dcache;
 
 // get the dentry from the directory, with a given offset
-struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset) {
+struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_idx, uint64_t offset) {
     uint64_t lblock = offset / BLOCK_SIZE;
     uint64_t blk_offset = offset % BLOCK_SIZE;
 
@@ -32,23 +32,23 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint64_t offset) 
     } else {
         DEBUG("dctx lblock %u not match lblock %u, update", dcache->lblock, lblock);
         dcache_update(inode, lblock);
-        return dentry_next(inode, offset);
+        return dentry_next(inode, inode_idx, offset);
     }
 }
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t parent_idx, uint64_t *lblock) {
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_idx, uint64_t *lblock) {
     uint64_t offset = 0;
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_dir_entry_2 *de_next = NULL;
-    dcache_init(inode, parent_idx);
-    while ((de_next = dentry_next(inode, offset))) {
+    dcache_init(inode, inode_idx);
+    while ((de_next = dentry_next(inode, inode_idx, offset))) {
         offset += de_next->rec_len;
         if (de_next->inode_idx == 0 && de_next->name_len == 0) {
             // reach the ext4_dir_entry_tail
             ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
             INFO("found the last dentry");
-            *lblock = offset / BLOCK_SIZE;
+            *lblock = (offset - 1) / BLOCK_SIZE;
             return de;
         }
         de = de_next;
@@ -75,7 +75,6 @@ int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx) {
     return 0;
 }
 
-// add new dentry to the directory
-int dentry_add(struct ext4_dir_entry_2 *last_de, struct ext4_dir_entry_2 *de) {
-    return 0;
-}
+// int dentry_init(uint32_t parent_idx, uint32_t inode_idx) {
+
+// }

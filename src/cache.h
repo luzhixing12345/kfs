@@ -9,8 +9,8 @@
 #include "ext4/ext4_inode.h"
 
 struct dcache_entry;
-struct dcache_entry *dcache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n);
-struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name, int namelen);
+struct dcache_entry *decache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n);
+struct dcache_entry *decache_lookup(struct dcache_entry *parent, const char *name, int namelen);
 int dcache_init_root(uint32_t n);
 
 #define DCACHE_ENTRY_NAME_LEN NAME_MAX
@@ -31,8 +31,13 @@ struct dcache_entry {
 struct dcache {
     uint32_t inode_idx;  // current inode_idx
     uint32_t lblock;     // current logic block id
+    int status;          // 0: invalid, 1: valid, 2: dirty
     uint8_t buf[];       // buffer
 };
+
+#define DCACHE_S_INVAL 0
+#define DCACHE_S_VALID 1
+#define DCACHE_S_DIRTY 2
 
 int cache_init();
 
@@ -60,13 +65,13 @@ struct icache_entry {
     int status;               // empty, valid, dirty
 };
 
-#define I_CACHED_S_INVAL           0
-#define I_CACHED_S_VALID           1
-#define I_CACHED_S_DIRTY           2
+#define ICACHE_S_INVAL           0
+#define ICACHE_S_VALID           1
+#define ICACHE_S_DIRTY           2
 
-#define I_CACHED_UPDATE_CNT(inode) (((struct icache_entry *)(inode))->lru_count++)
-#define I_CACHED_INVAL(inode)      (((struct icache_entry *)(inode))->status = I_CACHED_S_INVAL)
-#define I_CACHED_DIRTY(inode)      (((struct icache_entry *)(inode))->status = I_CACHED_S_DIRTY)
+#define ICACHE_UPDATE_CNT(inode) (((struct icache_entry *)(inode))->lru_count++)
+#define ICACHE_INVAL(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
+#define ICACHE_DIRTY(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
 
 /**
  * @brief find inode in icache
@@ -80,8 +85,10 @@ struct ext4_inode *icache_find(uint32_t inode_idx);
  * @brief insert a new inode into icache (LRU if exchange)
  *
  * @param inode_idx
- * @return struct ext4_inode *
+ * @param read_from_disk if false, only register a new inode in i_cache instead of load from disk
+    useful when inode_create() is called
+ * @return struct ext4_inode*
  */
-struct ext4_inode *icache_insert(uint32_t inode_idx);
+struct ext4_inode *icache_insert(uint32_t inode_idx, int read_from_disk);
 
 #endif

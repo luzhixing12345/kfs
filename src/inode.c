@@ -17,6 +17,7 @@
 #include <time.h>
 
 #include "cache.h"
+#include "common.h"
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
@@ -115,11 +116,11 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     } else {
         // inode could not find in icache, read from disk and return the inode
         DEBUG("Not found inode_idx %d in icache", inode_idx);
-        *inode = icache_insert(inode_idx);
+        *inode = icache_insert(inode_idx, 1);
     }
 
     // update lru count of the inode
-    I_CACHED_UPDATE_CNT(*inode);
+    ICACHE_UPDATE_CNT(*inode);
     return 0;
 }
 
@@ -144,7 +145,7 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
             return ret;
         }
 
-        next = dcache_lookup(ret, *path, path_len);
+        next = decache_lookup(ret, *path, path_len);
         if (next) {
             INFO("Found entry in cache: %s", next->name);
             *path += path_len;
@@ -183,7 +184,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
         // load inode by inode_idx
         inode_get_by_number(inode_idx, &inode);
         dcache_init(inode, inode_idx);
-        while ((de = dentry_next(inode, offset))) {
+        while ((de = dentry_next(inode, inode_idx, offset))) {
             offset += de->rec_len;
             if (!de->inode_idx) {
                 INFO("reach the end of the directory");
@@ -204,7 +205,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
             // if the entry is a directory, add it to the cache
             if (de->file_type == EXT4_FT_DIR) {
                 INFO("Add dir entry %s:%d to dentry cache", path, path_len);
-                dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
+                dc_entry = decache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
         }
@@ -294,15 +295,16 @@ uint32_t inode_get_parent_idx_by_path(const char *path) {
     return parent_idx;
 }
 
-int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
-    memset(inode, 0, sizeof(struct ext4_inode));
-    inode->i_mode = mode;
+int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode) {
+    *inode = icache_insert(inode_idx, 0);
+    memset(*inode, 0, sizeof(struct ext4_inode));
+    (*inode)->i_mode = mode;
     time_t now = time(NULL);
-    inode->i_atime = inode->i_ctime = inode->i_mtime = now;
+    (*inode)->i_atime = (*inode)->i_ctime = (*inode)->i_mtime = now;
     struct fuse_context *cntx = fuse_get_context();
-    EXT4_INODE_SET_UID(*inode, cntx->uid);
-    EXT4_INODE_SET_GID(*inode, cntx->gid);
-    inode->i_links_count = 1;
+    EXT4_INODE_SET_UID(**inode, cntx->uid);
+    EXT4_INODE_SET_GID(**inode, cntx->gid);
+    (*inode)->i_links_count = 1;
     // ext4 extent header in block[0-3]
     struct ext4_extent_header eh;
     eh.eh_magic = EXT4_EXT_MAGIC;
@@ -310,7 +312,7 @@ int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
     eh.eh_max = EXT4_EXT_EH_MAX;
     eh.eh_depth = 0;
     eh.eh_generation = EXT4_EXT_EH_GENERATION;
-    memcpy(inode->i_block, &eh, sizeof(struct ext4_extent_header));
+    memcpy((*inode)->i_block, &eh, sizeof(struct ext4_extent_header));
 
     // new inode has one ext4 extent
     struct ext4_extent ee;
@@ -318,17 +320,12 @@ int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
     ee.ee_len = 1;
     ee.ee_start_hi = (pblock >> 32) & MASK_16;
     ee.ee_start_lo = (pblock & MASK_32);
-    memcpy(inode->i_block + sizeof(struct ext4_extent_header), &ee, sizeof(struct ext4_extent));
+    memcpy((*inode)->i_block + sizeof(struct ext4_extent_header), &ee, sizeof(struct ext4_extent));
     // set other 3 ext extents to 0
-    memset(inode->i_block + sizeof(struct ext4_extent_header) + sizeof(struct ext4_extent),
+    memset((*inode)->i_block + sizeof(struct ext4_extent_header) + sizeof(struct ext4_extent),
            0,
            3 * sizeof(struct ext4_extent));
-    INFO("new inode created");
-    return 0;
-}
-
-int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode) {
-    uint64_t off = inode_get_offset(inode_idx);
-    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
+    ICACHE_DIRTY(*inode);  // mark new inode as dirty
+    INFO("new inode %u created", inode_idx);
     return 0;
 }

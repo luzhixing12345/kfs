@@ -8,6 +8,7 @@
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4_basic.h"
+#include "ext4/ext4_super.h"
 #include "logging.h"
 #include "ops.h"
 
@@ -68,10 +69,7 @@ int op_mkdir(const char *path, mode_t mode) {
     INFO("start to create new dentry and new inode");
 
     // create a new dentry
-    if (dentry_create(de, dir_name, dir_idx) < 0) {
-        ERR("fail to create dentry");
-        return -ENOENT;
-    }
+    dentry_create(de, dir_name, dir_idx);
 
     // write back new dentry to disk
     ASSERT(dcache->lblock == lblock);
@@ -79,23 +77,15 @@ int op_mkdir(const char *path, mode_t mode) {
     disk_write_block(pblock, &dcache->buf);
     INFO("write back new dentry to disk");
 
-    // write back new inode to disk
     // set parent inode link count + 1 because ..
     inode->i_links_count++;
-    if (inode_write_back(parent_idx, inode) < 0) {
-        ERR("fail to write back new inode");
-        return -ENOENT;
-    }
-    INFO("write back parent inode to disk");
+    ICACHE_DIRTY(inode);
+
     // for now, inode(parent) is not used any more, reuse for new directory inode
 
     // create a new inode
-    if (inode_create(mode, pblock_idx, inode) < 0) {
-        ERR("fail to create new inode");
-        return -ENOENT;
-    }
-    disk_write(pblock_idx, sizeof(struct ext4_inode), &inode);
-    INFO("create new inode on disk");
+    inode_create(dir_idx, mode, pblock_idx, &inode);
+    INFO("create new inode");
 
     // update inode and data bitmap
     bitmap_inode_set(parent_idx, 1);
@@ -105,8 +95,33 @@ int op_mkdir(const char *path, mode_t mode) {
     INFO("set inode and data bitmap");
 
     // update gdt
+    int group_idx = dir_idx / EXT4_INODES_PER_GROUP(sb);
+    uint32_t free_blocks = EXT4_GDT_FREE_BLOCKS(&gdt[group_idx]) - 1;
+    gdt[group_idx].bg_free_blocks_count_lo = free_blocks & MASK_16;
+    gdt[group_idx].bg_free_blocks_count_hi = free_blocks >> 16;
+
+    uint32_t free_inodes = EXT4_GDT_FREE_INODES(&gdt[group_idx]) - 1;
+    gdt[group_idx].bg_free_inodes_count_lo = free_inodes & MASK_16;
+    gdt[group_idx].bg_free_inodes_count_hi = free_inodes >> 16;
+
+    // used_dirs may overflow
+    uint32_t used_dirs = EXT4_GDT_USED_DIRS(&gdt[group_idx]);
+    if (used_dirs != EXT4_GDT_MAX_USED_DIRS) {
+        ERR("used dirs overflow!");
+        used_dirs++;
+    }
+    gdt[group_idx].bg_used_dirs_count_lo = used_dirs & MASK_16;
+    gdt[group_idx].bg_used_dirs_count_hi = used_dirs >> 16;
+
+    uint32_t unused_inodes = EXT4_GDT_ITABLE_UNUSED(&gdt[group_idx]) - 1;
+    gdt[group_idx].bg_itable_unused_lo = unused_inodes & MASK_16;
+    gdt[group_idx].bg_itable_unused_hi = unused_inodes >> 16;
+    EXT4_GDT_SET_DIRTY(&gdt[group_idx]);  // set gdt dirty
+    INFO("update gdt");
 
     // add . and .. for the new dentry
-
+    // dentry_create(de, ".", dir_idx);
+    // dentry_create(de, "..", parent_idx);
+    // INFO("add . and .. for the new dentry");
     return 0;
 }

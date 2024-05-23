@@ -56,7 +56,7 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
     inode->i_atime = asec;
     inode->i_mtime = msec;
 
-    I_CACHED_DIRTY(inode);  // set inode status to dirty
+    ICACHE_DIRTY(inode);  // set inode status to dirty
 
     // the inode do not need to be written back to disk for now
     // we just update it in cache(memory), and it will be written back to disk when:

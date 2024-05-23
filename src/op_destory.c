@@ -6,6 +6,7 @@
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_basic.h"
+#include "ext4/ext4_super.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -17,7 +18,7 @@ extern struct bitmap d_bitmap;
 
 void op_destory(void *data) {
     DEBUG("ext4 fuse fs destory");
-    
+
     // write back all the dirty bitmaps
     for (int i = 0; i < i_bitmap.group_num; i++) {
         if (i_bitmap.group[i].status == BITMAP_S_DIRTY) {
@@ -40,7 +41,7 @@ void op_destory(void *data) {
 
     // write back all the dirty inodes
     for (int i = 0; i < icache->count; i++) {
-        if (icache->entries[i].status == I_CACHED_S_DIRTY) {
+        if (icache->entries[i].status == ICACHE_S_DIRTY) {
             INFO("write back dirty inode %d", icache->entries[i].inode_idx);
             disk_write(
                 inode_get_offset(icache->entries[i].inode_idx), sizeof(struct ext4_inode), &icache->entries[i].inode);
@@ -50,6 +51,16 @@ void op_destory(void *data) {
     free(icache);
     INFO("free icache done");
 
+    // write back all the dirty group descriptors
+    uint64_t bg_off = ALIGN_TO_BLOCKSIZE(BOOT_SECTOR_SIZE + sizeof(struct ext4_super_block));
+
+    for (int i = 0; i < EXT4_N_BLOCK_GROUPS(sb); i++) {
+        if (EXT4_GDT_DIRTY_FLAG(&gdt[i]) == EXT4_GDT_DIRTY) {
+            INFO("write back dirty group descriptor %d", i);
+            EXT4_GDT_SET_CLEAN(&gdt[i]);  // set it as clean before write back to disk
+            disk_write(bg_off + i * EXT4_DESC_SIZE(sb), EXT4_DESC_SIZE(sb), &gdt[i]);
+        }
+    }
     free(gdt);
     INFO("free group descriptors done");
 

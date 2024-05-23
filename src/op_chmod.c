@@ -44,9 +44,9 @@ int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // - the icache_entry is replaced by a new inode (see icache_lru_replace)
     // - fsync is called
     // - fs is destroyed(unmount)
-    
-    I_CACHED_DIRTY(inode);
-    
+
+    ICACHE_DIRTY(inode);
+
     INFO("Finished chmod on inode %d", inode_idx);
     return 0;
 }
