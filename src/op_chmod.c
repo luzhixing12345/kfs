@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 
+#include "cache.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "inode.h"
@@ -17,7 +18,7 @@ extern struct ext4_super_block sb;
 int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
     DEBUG("chmod path %s with mode %o", path, mode);
 
-    struct ext4_inode inode;
+    struct ext4_inode *inode;
     uint32_t inode_idx;
     if (fi && fi->fh) {
         inode_idx = fi->fh;
@@ -25,20 +26,27 @@ int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
         inode_idx = inode_get_idx_by_path(path);
     }
 
-    if (inode_idx == 0) {
+    if (inode_get_by_number(inode_idx, &inode) < 0) {
+        INFO("fail to get inode %d", inode_idx);
         return -ENOENT;
     }
-    inode_idx--; /* Inode 0 doesn't exist on disk */
-    // read disk by inode number
-    uint64_t off = inode_get_offset(inode_idx);
-    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
 
-    if (inode_check_permission(&inode, RDWR)) {
+    // check permission
+    if (inode_check_permission(inode, RDWR)) {
         return -EACCES;
     }
 
-    inode.i_mode = mode;
-    disk_write(off, sizeof(struct ext4_inode), &inode);
+    inode->i_mode = mode;
+
+    // the inode do not need to be written back to disk for now
+    // we just update it in cache(memory), and it will be written back to disk when:
+    //
+    // - the icache_entry is replaced by a new inode (see icache_lru_replace)
+    // - fsync is called
+    // - fs is destroyed(unmount)
+    
+    I_CACHED_DIRTY(inode);
+    
     INFO("Finished chmod on inode %d", inode_idx);
     return 0;
 }

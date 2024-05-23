@@ -7,8 +7,8 @@
 
 extern struct ext4_super_block sb;
 extern struct ext4_group_desc *gdt;
-extern uint64_t **i_bitmap;
-extern uint64_t **d_bitmap;
+extern struct bitmap i_bitmap;
+extern struct bitmap d_bitmap;
 
 #define BOOT_SECTOR_SIZE        0x400   // boot sector
 #define EXT4_S_MAGIC            0xEF53  // ext4 magic number

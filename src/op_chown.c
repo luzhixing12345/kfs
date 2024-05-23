@@ -1,8 +1,10 @@
 
 #include <stdint.h>
 
+#include "cache.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -48,28 +50,31 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
         inode_idx = inode_get_idx_by_path(path);
     }
 
-    if (inode_idx == 0) {
+    struct ext4_inode *inode;
+    if (inode_get_by_number(inode_idx, &inode) < 0) {
         return -ENOENT;
     }
 
-    struct ext4_inode inode;
-    uint64_t off = inode_get_offset(inode_idx);
-
-    // read disk by inode number
-    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
-
-    if (inode_check_permission(&inode, RDWR) < 0) {
+    if (inode_check_permission(inode, RDWR) < 0) {
         INFO("Permission denied");
         return -EACCES;
     }
 
     // directly return if uid or gid is same as current
-    if (uid == inode.i_uid && gid == inode.i_gid) {
+    if (uid == inode->i_uid && gid == inode->i_gid) {
         return 0;
     }
 
-    inode.i_uid = uid;
-    inode.i_gid = gid;
-    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
+    EXT4_INODE_SET_UID(*inode, uid);
+    EXT4_INODE_SET_GID(*inode, gid);
+
+    // the inode do not need to be written back to disk for now
+    // we just update it in cache(memory), and it will be written back to disk when:
+    //
+    // - the icache_entry is replaced by a new inode (see icache_lru_replace)
+    // - fsync is called
+    // - fs is destroyed(unmount)
+
+    I_CACHED_DIRTY(inode);
     return 0;
 }

@@ -64,5 +64,6 @@ void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     super_group_fill();  // group descriptors
     bitmap_init();
     cache_init();
+
     return NULL;
 }
