@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+#include "cache.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "inode.h"
@@ -35,7 +36,7 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
         msec = now.tv_sec;
     }
 
-    struct ext4_inode inode;
+    struct ext4_inode *inode;
 
     uint32_t inode_idx;
     if (fi && fi->fh) {
@@ -44,25 +45,23 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
         inode_idx = inode_get_idx_by_path(path);
     }
 
-    // read disk by inode number
-    if (inode_idx == 0) {
-        return -ENOENT;
-    }
-    inode_idx--; /* Inode 0 doesn't exist on disk */
-
-    uint64_t off = inode_get_offset(inode_idx);
-    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
-
-    if (inode_check_permission(&inode, WR_ONLY)) {
+    inode_get_by_number(inode_idx, &inode);
+    if (inode_check_permission(inode, WR_ONLY)) {
         return -EPERM;
     }
 
     // update the access and modification times
-    inode.i_atime = asec;
-    inode.i_mtime = msec;
+    inode->i_atime = asec;
+    inode->i_mtime = msec;
 
-    // write back the inode
-    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), &inode);
+    I_CACHED_DIRTY(inode); // set inode status to dirty
+
+    // the inode do not need to be written back to disk for now
+    // we just update it in cache(memory), and it will be written back to disk when:
+    //
+    // - the icache_entry is replaced by a new inode (see icache_lru_replace)
+    // - fsync is called
+    // - fs is destroyed(unmount)
 
     DEBUG("utimens done");
     return 0;

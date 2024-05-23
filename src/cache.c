@@ -15,6 +15,7 @@
 
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 
@@ -65,6 +66,8 @@ void dcache_update(struct ext4_inode *inode, uint32_t lblock) {
  * @param inode_idx
  */
 void dcache_init(struct ext4_inode *inode, uint32_t inode_idx) {
+    I_CACHED_UPDATE_CNT(inode);  // update lru count
+
     // if already initialized
     if (dcache->inode_idx == inode_idx) {
         DEBUG("dctx already initialized for inode %u", inode_idx);
@@ -165,13 +168,13 @@ struct dcache_entry *dcache_lookup(struct dcache_entry *parent, const char *name
 
 /**
  * @brief find inode in icache
- * 
- * @param inode_idx 
+ *
+ * @param inode_idx
  * @return struct ext4_inode* NULL if not found
  */
 struct ext4_inode *icache_find(uint32_t inode_idx) {
     for (int i = 0; i < icache->count; i++) {
-        if (icache->entries[i].valid && icache->entries[i].inode_idx == inode_idx) {
+        if (icache->entries[i].status && icache->entries[i].inode_idx == inode_idx) {
             return &icache->entries[i].inode;
         }
     }
@@ -180,18 +183,20 @@ struct ext4_inode *icache_find(uint32_t inode_idx) {
 
 // if has invalid icache entry, then replace it
 // otherwise find the least recently used inode, and replace it with the given inode
-static void icache_lru_replace(uint32_t inode_idx, struct ext4_inode *inode) {
+struct ext4_inode *icache_lru_replace(uint32_t inode_idx) {
     int lru_idx = -1;
     int lru_count = INT_MAX;
+    uint64_t off;
     for (int i = 0; i < icache->count; i++) {
         // find an invalid entry, repalce it
-        if (!icache->entries[i].valid) {
-            memcpy(&icache->entries[i].inode, inode, sizeof(struct ext4_inode));
+        if (icache->entries[i].status == I_CACHED_S_INVAL) {
+            off = inode_get_offset(inode_idx);
+            disk_read(off, sizeof(struct ext4_inode), &icache->entries[i].inode);
             icache->entries[i].inode_idx = inode_idx;
-            icache->entries[i].valid = 1;
+            icache->entries[i].status = I_CACHED_S_VALID;
             icache->entries[i].lru_count = 0;
             INFO("replace invalid entry %d by inode %d", i, inode_idx);
-            return;
+            return &icache->entries[i].inode;
         }
         // find the least recently used entry
         if (icache->entries[i].lru_count < lru_count) {
@@ -200,31 +205,37 @@ static void icache_lru_replace(uint32_t inode_idx, struct ext4_inode *inode) {
         }
     }
 
-    // replace the least recently used entry
-    memcpy(&icache->entries[lru_idx].inode, inode, sizeof(struct ext4_inode));
+    // if the inode is dirty, write it back to disk
+    if (icache->entries[lru_idx].status == I_CACHED_S_DIRTY) {
+        off = inode_get_offset(icache->entries[lru_idx].inode_idx);
+        disk_write(off, sizeof(struct ext4_inode), &icache->entries[lru_idx].inode);
+    }
+    disk_read(inode_get_offset(inode_idx), sizeof(struct ext4_inode), &icache->entries[lru_idx].inode);
     icache->entries[lru_idx].inode_idx = inode_idx;
-    icache->entries[lru_idx].valid = 1;
+    icache->entries[lru_idx].status = I_CACHED_S_VALID;
     icache->entries[lru_idx].lru_count = 0;
     INFO("replace lru entry %d by inode %d", lru_idx, inode_idx);
+    return &icache->entries[lru_idx].inode;
 }
 
 /**
  * @brief insert a new inode into icache (LRU if exchange)
- * 
- * @param inode_idx 
- * @param inode 
- * @return void 
+ *
+ * @param inode_idx
+ * @return struct ext4_inode *
  */
-void icache_insert(uint32_t inode_idx, struct ext4_inode *inode) {
+struct ext4_inode *icache_insert(uint32_t inode_idx) {
     if (icache->count == ICACHE_MAX_COUNT) {
         INFO("icache is full");
-        icache_lru_replace(inode_idx, inode);
+        return icache_lru_replace(inode_idx);
     } else {
         icache->entries[icache->count].inode_idx = inode_idx;
-        memcpy(&icache->entries[icache->count].inode, inode, sizeof(struct ext4_inode));
-        icache->entries[icache->count].valid = 1;
+        uint64_t off = inode_get_offset(inode_idx);
+        disk_read(off, sizeof(struct ext4_inode), &icache->entries[icache->count].inode);
+        icache->entries[icache->count].status = I_CACHED_S_VALID;
         icache->entries[icache->count].lru_count = 0;
         icache->count++;
         INFO("insert inode %d into icache", inode_idx);
+        return &icache->entries[icache->count - 1].inode;
     }
 }

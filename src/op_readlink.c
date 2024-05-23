@@ -40,18 +40,18 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
 
 /* Check return values, bufer sizes and so on; strings are nasty... */
 int op_readlink(const char *path, char *buf, size_t bufsize) {
-    struct ext4_inode inode;
+    struct ext4_inode *inode;
     DEBUG("readlink");
 
     if (inode_get_by_path(path, &inode, NULL) < 0) {
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }
-    if (!S_ISLNK(inode.i_mode)) {
+    if (!S_ISLNK(inode->i_mode)) {
         return -EINVAL;
     }
 
-    get_link_dest(&inode, buf, bufsize);
+    get_link_dest(inode, buf, bufsize);
     DEBUG("Link resolved: %s => %s", path, buf);
     return 0;
 }

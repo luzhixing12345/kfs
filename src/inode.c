@@ -13,13 +13,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
 
 #include "cache.h"
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_basic.h"
 #include "ext4/ext4_inode.h"
 #include "extents.h"
+#include "fuse.h"
 #include "logging.h"
 
 extern struct ext4_super_block sb;
@@ -97,7 +101,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
+int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     if (inode_idx == 0) {
         return -ENOENT;
     }
@@ -107,17 +111,15 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode *inode) {
     struct ext4_inode *ic_entry = icache_find(inode_idx);
     if (ic_entry) {
         DEBUG("Found inode_idx %d in icache", inode_idx);
-        memcpy(inode, ic_entry, sizeof(struct ext4_inode));
-        return 0;
+        *inode = ic_entry;
+    } else {
+        // inode could not find in icache, read from disk and return the inode
+        DEBUG("Not found inode_idx %d in icache", inode_idx);
+        *inode = icache_insert(inode_idx);
     }
 
-    // read disk by inode number
-    uint64_t off = inode_get_offset(inode_idx);
-    disk_read(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
-
-    // add to icache
-    DEBUG("Add inode_idx %d to icache", inode_idx);
-    icache_insert(inode_idx, inode);
+    // update lru count of the inode
+    I_CACHED_UPDATE_CNT(*inode);
     return 0;
 }
 
@@ -154,7 +156,7 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
 
 uint32_t inode_get_idx_by_path(const char *path) {
     uint32_t inode_idx = 0;
-    struct ext4_inode inode;
+    struct ext4_inode *inode;
 
     /* Paths from fuse are always absolute */
     assert(IS_PATH_SEPARATOR(path[0]));
@@ -180,8 +182,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
         // load inode by inode_idx
         inode_get_by_number(inode_idx, &inode);
-        dcache_init(&inode, inode_idx);
-        while ((de = dentry_next(&inode, offset))) {
+        dcache_init(inode, inode_idx);
+        while ((de = dentry_next(inode, offset))) {
             offset += de->rec_len;
             if (!de->inode_idx) {
                 INFO("reach the end of the directory");
@@ -201,7 +203,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
             // if the entry is a directory, add it to the cache
             if (de->file_type == EXT4_FT_DIR) {
-                INFO("Add dir entry %s:%d to cache", path, path_len);
+                INFO("Add dir entry %s:%d to dentry cache", path, path_len);
                 dc_entry = dcache_insert(dc_entry, path, path_len, inode_idx);
             }
             break;
@@ -218,7 +220,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
     return inode_idx;
 }
 
-int inode_get_by_path(const char *path, struct ext4_inode *inode, uint32_t *inode_idx) {
+int inode_get_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx) {
     uint32_t i_idx = inode_get_idx_by_path(path);
     if (i_idx == 0) {
         return -ENOENT;
@@ -246,8 +248,10 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     struct fuse_context *cntx = fuse_get_context();  //获取当前用户的上下文
     uid_t uid = cntx->uid;
     gid_t gid = cntx->gid;
+    uid_t i_uid = EXT4_INODE_UID(*inode);
+    gid_t i_gid = EXT4_INODE_GID(*inode);
     DEBUG("check inode & user permission on op mode %d", mode);
-    DEBUG("inode uid %d, inode gid %d", inode->i_uid, inode->i_gid);
+    DEBUG("inode uid %d, inode gid %d", i_uid, i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);
 
     // 检查用户是否是超级用户
@@ -257,7 +261,7 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     }
 
     // 根据访问模式、文件所有者检查权限(只读、只写、读写)
-    if (inode->i_uid == uid) {
+    if (i_uid == uid) {
         if ((mode == RD_ONLY && (inode->i_mode & S_IRUSR)) || (mode == WR_ONLY && (inode->i_mode & S_IWUSR)) ||
             (mode == RDWR && ((inode->i_mode & S_IRUSR) && (inode->i_mode & S_IWUSR)))) {
             INFO("Permission granted");
@@ -266,7 +270,7 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     }
 
     // 组用户检查
-    if (inode->i_gid == gid) {
+    if (i_gid == gid) {
         if ((mode == RD_ONLY && (inode->i_mode & S_IRGRP)) || (mode == WR_ONLY && (inode->i_mode & S_IWGRP)) ||
             (mode == RDWR && ((inode->i_mode & S_IRGRP) && (inode->i_mode & S_IWGRP)))) {
             INFO("Permission granted");
@@ -288,4 +292,43 @@ uint32_t inode_get_parent_idx_by_path(const char *path) {
     uint32_t parent_idx = inode_get_idx_by_path(tmp);
     free(tmp);
     return parent_idx;
+}
+
+int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
+    memset(inode, 0, sizeof(struct ext4_inode));
+    inode->i_mode = mode;
+    time_t now = time(NULL);
+    inode->i_atime = inode->i_ctime = inode->i_mtime = now;
+    struct fuse_context *cntx = fuse_get_context();
+    EXT4_INODE_SET_UID(*inode, cntx->uid);
+    EXT4_INODE_SET_GID(*inode, cntx->gid);
+    inode->i_links_count = 1;
+    // ext4 extent header in block[0-3]
+    struct ext4_extent_header eh;
+    eh.eh_magic = EXT4_EXT_MAGIC;
+    eh.eh_entries = 1;
+    eh.eh_max = EXT4_EXT_EH_MAX;
+    eh.eh_depth = 0;
+    eh.eh_generation = EXT4_EXT_EH_GENERATION;
+    memcpy(inode->i_block, &eh, sizeof(struct ext4_extent_header));
+
+    // new inode has one ext4 extent
+    struct ext4_extent ee;
+    ee.ee_block = 0;
+    ee.ee_len = 1;
+    ee.ee_start_hi = (pblock >> 32) & MASK_16;
+    ee.ee_start_lo = (pblock & MASK_32);
+    memcpy(inode->i_block + sizeof(struct ext4_extent_header), &ee, sizeof(struct ext4_extent));
+    // set other 3 ext extents to 0
+    memset(inode->i_block + sizeof(struct ext4_extent_header) + sizeof(struct ext4_extent),
+           0,
+           3 * sizeof(struct ext4_extent));
+    INFO("new inode created");
+    return 0;
+}
+
+int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode) {
+    uint64_t off = inode_get_offset(inode_idx);
+    disk_write(off, MIN(EXT4_S_INODE_SIZE(sb), sizeof(struct ext4_inode)), inode);
+    return 0;
 }

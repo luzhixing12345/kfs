@@ -5,6 +5,7 @@
 
 #include <fuse3/fuse.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #define ALIGN_TO(__n, __align) ({                           \
     typeof (__n) __ret;                                     \

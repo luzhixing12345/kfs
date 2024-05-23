@@ -23,8 +23,7 @@ unsigned fuse_capable;
 
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
-uint64_t **i_bitmap = NULL;
-uint64_t **d_bitmap = NULL;
+
 
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);

@@ -10,17 +10,25 @@ extern struct ext4_group_desc *gdt;
 extern uint64_t **i_bitmap;
 extern uint64_t **d_bitmap;
 
-#define BOOT_SECTOR_SIZE             0x400   // boot sector
-#define EXT4_S_MAGIC                 0xEF53  // ext4 magic number
+#define BOOT_SECTOR_SIZE        0x400   // boot sector
+#define EXT4_S_MAGIC            0xEF53  // ext4 magic number
 
-#define BLOCK_SIZE                   (EXT4_BLOCK_SIZE(sb))
-#define BLOCKS2BYTES(__blks)         (((uint64_t)(__blks)) * BLOCK_SIZE)
-#define BYTES2BLOCKS(__bytes)        ((__bytes) / BLOCK_SIZE + ((__bytes) % BLOCK_SIZE ? 1 : 0))
+#define BLOCK_SIZE              (EXT4_BLOCK_SIZE(sb))
+#define BLOCKS2BYTES(__blks)    (((uint64_t)(__blks)) * BLOCK_SIZE)
+#define BYTES2BLOCKS(__bytes)   ((__bytes) / BLOCK_SIZE + ((__bytes) % BLOCK_SIZE ? 1 : 0))
 
-#define MALLOC_BLOCKS(__blks)        (malloc(BLOCKS2BYTES(__blks)))
-#define ALIGN_TO_BLOCKSIZE(__n)      (ALIGN_TO(__n, BLOCK_SIZE))
-#define BIT(bitmap, __n)             ((bitmap)[(__n) / 8] & (1 << ((__n) % 8)))
-
+#define MALLOC_BLOCKS(__blks)   (malloc(BLOCKS2BYTES(__blks)))
+#define ALIGN_TO_BLOCKSIZE(__n) (ALIGN_TO(__n, BLOCK_SIZE))
+#define BIT(bitmap, __n)        ((bitmap)[(__n) / 8] & (1 << ((__n) % 8)))
+#define SET_BIT(bitmap_ptr, __n, __v)                        \
+    do {                                                     \
+        char *byte_ptr = (char *)(bitmap_ptr) + ((__n) / 8); \
+        if ((__v)) {                                         \
+            *byte_ptr |= (1 << ((__n) % 8));                 \
+        } else {                                             \
+            *byte_ptr &= ~(1 << ((__n) % 8));                \
+        }                                                    \
+    } while (0)
 /*
  * Macro-instructions used to manage group descriptors
  */
@@ -42,7 +50,6 @@ extern uint64_t **d_bitmap;
 #define EXT4_SUPER_GROUP_SIZE(sb)    (BLOCKS2BYTES(sb.s_blocks_per_group))
 #define EXT4_BLOCK_COUNT(sb)         (((uint64_t)sb.s_blocks_count_hi << 32) | sb.s_blocks_count_lo)
 #define EXT4_N_BLOCK_GROUPS(sb)      ((EXT4_BLOCK_COUNT(sb) + EXT4_BLOCKS_PER_GROUP(sb) - 1) / EXT4_BLOCKS_PER_GROUP(sb))
-
 
 // dentry
 #define EXT4_NEXT_DE(de)             ((struct ext4_dentry *)(de) + 1)

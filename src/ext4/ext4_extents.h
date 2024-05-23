@@ -1,24 +1,21 @@
-/* vim: set ts=8 :
- *
- * Copyright (c) 2010, Gerard Lledó Vives, gerard.lledo@gmail.com
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation. See README and COPYING for
- * more details.
- *
- *  from
- *
- *  linux/fs/ext4/ext4_extents.h
- *
- * Copyright (c) 2003-2006, Cluster File Systems, Inc, info@clusterfs.com
- * Written by Alex Tomas <alex@clusterfs.com>
- */
 
 #ifndef EXT4_EXTENTS_H
 #define EXT4_EXTENTS_H
 
 #include "ext4_basic.h"
+
+// In ext4, the file to logical block map has been replaced with an extent tree. Under the old scheme, allocating a
+// contiguous run of 1,000 blocks requires an indirect block to map all 1,000 entries; with extents, the mapping is
+// reduced to a single struct ext4_extent with ee_len = 1000. If flex_bg is enabled, it is possible to allocate very
+// large files with a single extent, at a considerable reduction in metadata block use, and some improvement in disk
+// efficiency. The inode must have the extents flag (0x80000) flag set for this feature to be in use.
+
+// Extents are arranged as a tree. Each node of the tree begins with a struct ext4_extent_header. If the node is an
+// interior node (eh.eh_depth > 0), the header is followed by eh.eh_entries instances of struct ext4_extent_idx; each of
+// these index entries points to a block containing more nodes in the extent tree. If the node is a leaf node
+// (eh.eh_depth == 0), then the header is followed by eh.eh_entries instances of struct ext4_extent; these instances
+// point to the file's data blocks. The root node of the extent tree is stored in inode.i_block, which allows for the
+// first four extents to be recorded without the use of extra metadata blocks.
 
 /*
  * ext4_inode has i_block array (60 bytes total).
@@ -31,10 +28,13 @@
  * It's used at the bottom of the tree.
  */
 struct ext4_extent {
-    __le32 ee_block;    /* 文件逻辑块号的第一个块,表示这个扩展的起始块 */
-    __le16 ee_len;      /* 这个扩展覆盖的数据块数量 */
-    __le16 ee_start_hi; /* 物理块号的高 16 位 */
-    __le32 ee_start_lo; /* 物理块号的低 32 位 */
+    __le32 ee_block;    /* First file block number that this extent covers. */
+    __le16 ee_len;      /* Number of blocks covered by extent. If the value of this field is <= 32768, the extent is
+                           initialized. If the value of the field is > 32768, the extent is uninitialized and the actual
+                           extent length is ee_len - 32768. Therefore, the maximum length of a initialized extent is 32768
+                           blocks, and the maximum length of an uninitialized extent is 32767. */
+    __le16 ee_start_hi; /* Upper 16-bits of the block number to which this extent points. */
+    __le32 ee_start_lo; /* Lower 32-bits of the block number to which this extent points. */
 };
 /*
  * This is index on-disk structure.
@@ -51,6 +51,7 @@ struct ext4_extent_idx {
 /*
  * Each block (leaves and indexes), even inode-stored has header.
  */
+// https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Extent_Tree
 struct ext4_extent_header {
     __le16 eh_magic;      /* 魔数,用于识别扩展索引的格式 */
     __le16 eh_entries;    /* 有效的条目数量,表示当前有多少条目在使用 */
@@ -59,6 +60,9 @@ struct ext4_extent_header {
     __le32 eh_generation; /* 扩展索引树的版本号,用于确保一致性 */
 };
 
-#define EXT4_EXT_MAGIC 0xF30A // extent header magic number
+#define EXT4_EXT_MAGIC         0xF30A  // extent header magic number
+#define EXT4_EXT_EH_MAX        4
+#define EXT4_EXT_EH_GENERATION 0
+#define EXT4_MAX_EXTENT_DEPTH  5
 
 #endif

@@ -21,8 +21,8 @@
 
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);
 
-int inode_get_by_number(uint32_t n, struct ext4_inode *inode);
-int inode_get_by_path(const char *path, struct ext4_inode *inode, uint32_t *inode_idx);
+int inode_get_by_number(uint32_t n, struct ext4_inode **inode);
+int inode_get_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx);
 uint64_t inode_get_offset(uint32_t inode_idx);
 uint32_t inode_get_idx_by_path(const char *path);
 
@@ -35,6 +35,25 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode);
 // find a free inode
 int inode_find_free();
 
+/**
+ * @brief create a new inode
+ * 
+ * @param mode 
+ * @param pblock 
+ * @param inode 
+ * @return int 
+ */
+int inode_create(mode_t mode, uint64_t pblock, struct ext4_inode *inode);
+
 uint32_t inode_get_parent_idx_by_path(const char *path);
+
+/**
+ * @brief write back the inode to disk
+ * 
+ * @param inode_idx 
+ * @param inode 
+ * @return int 
+ */
+int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode);
 
 #endif

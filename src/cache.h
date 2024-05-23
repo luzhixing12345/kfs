@@ -57,8 +57,16 @@ struct icache_entry {
     struct ext4_inode inode;  // inode cached
     uint32_t inode_idx;       // inode index
     uint32_t lru_count;       // lru count
-    int valid;                // whether the inode is valid, if modified then set to 0
+    int status;               // empty, valid, dirty
 };
+
+#define I_CACHED_S_INVAL           0
+#define I_CACHED_S_VALID           1
+#define I_CACHED_S_DIRTY           2
+
+#define I_CACHED_UPDATE_CNT(inode) (((struct icache_entry *)(inode))->lru_count++)
+#define I_CACHED_INVAL(inode)      (((struct icache_entry *)(inode))->status = I_CACHED_S_INVAL)
+#define I_CACHED_DIRTY(inode)      (((struct icache_entry *)(inode))->status = I_CACHED_S_DIRTY)
 
 /**
  * @brief find inode in icache
@@ -72,18 +80,8 @@ struct ext4_inode *icache_find(uint32_t inode_idx);
  * @brief insert a new inode into icache (LRU if exchange)
  *
  * @param inode_idx
- * @param inode
- * @return void
+ * @return struct ext4_inode *
  */
-void icache_insert(uint32_t inode_idx, struct ext4_inode *inode);
-
-/**
- * @brief update inode data
- *
- * @param inode_idx
- * @param inode
- * @return int
- */
-int icache_update(uint32_t inode_idx, struct ext4_inode *inode);
+struct ext4_inode *icache_insert(uint32_t inode_idx);
 
 #endif

@@ -17,4 +17,6 @@ BraceWrapping:
   BeforeElse: true
   IndentBraces: true
 AlignConsecutiveMacros: AcrossEmptyLinesAndComments
-MaxEmptyLinesToKeep:	1
+MaxEmptyLinesToKeep: 1
+AlignEscapedNewlines: Left
+

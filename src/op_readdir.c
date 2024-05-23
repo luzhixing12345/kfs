@@ -30,7 +30,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     UNUSED(fi);
     char name_buf[EXT4_NAME_LEN];
     struct ext4_dir_entry_2 *de = NULL;
-    struct ext4_inode inode;
+    struct ext4_inode *inode;
 
     /* We can use inode_get_by_number, but first we need to implement opendir */
     uint32_t inode_idx;
@@ -39,8 +39,8 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
         return -ENOENT;
     }
 
-    dcache_init(&inode, inode_idx);
-    while ((de = dentry_next(&inode, offset))) {
+    dcache_init(inode, inode_idx);
+    while ((de = dentry_next(inode, offset))) {
         offset += de->rec_len;
 
         if (!de->inode_idx) {

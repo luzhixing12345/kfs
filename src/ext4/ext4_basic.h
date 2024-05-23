@@ -14,4 +14,8 @@
 #define __u16  uint16_t
 #define __u8   uint8_t
 
+#define MASK_16 0xFFFF
+#define MASK_32 0xFFFFFFFF
+#define MASK_64 0xFFFFFFFFFFFFFFFF
+
 #endif

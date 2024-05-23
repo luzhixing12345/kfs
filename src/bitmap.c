@@ -8,12 +8,17 @@
 #include "ext4/ext4.h"
 #include "logging.h"
 
+uint64_t **i_bitmap;  // inode bitmap
+uint64_t **d_bitmap;  // data bitmap
+char *m_bitmap;    // modify inode bitmap
+
 int bitmap_init() {
     INFO("init bitmap");
 
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
     i_bitmap = malloc(sizeof(uint64_t) * group_num);
     d_bitmap = malloc(sizeof(uint64_t) * group_num);
+    m_bitmap = malloc(group_num * 2);
     uint64_t off;
     for (uint32_t i = 0; i < group_num; i++) {
         INFO("init inode & data bitmap for group %u", i);
@@ -68,7 +73,16 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
     return new_inode_idx;
 }
 
-uint64_t bitmap_block_find(uint32_t inode_idx) {
+int bitmap_inode_set(uint32_t inode_idx, int is_used) {
+    uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
+    uint32_t index = inode_idx % EXT4_INODES_PER_GROUP(sb);
+    uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
+    ASSERT(group_idx < group_num);
+    SET_BIT(i_bitmap[group_idx], index, is_used);
+    return 0;
+}
+
+uint64_t bitmap_pblock_find(uint32_t inode_idx) {
     uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
     ASSERT(group_idx < group_num);
@@ -87,4 +101,13 @@ uint64_t bitmap_block_find(uint32_t inode_idx) {
 
     ERR("no free block");
     return new_block_idx;
+}
+
+int bitmap_pblock_set(uint64_t block_idx, int is_used) {
+    uint32_t group_idx = block_idx / EXT4_BLOCKS_PER_GROUP(sb);
+    uint32_t index = block_idx % EXT4_BLOCKS_PER_GROUP(sb);
+    uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
+    ASSERT(group_idx < group_num);
+    SET_BIT(d_bitmap[group_idx], index, is_used);
+    return 0;
 }

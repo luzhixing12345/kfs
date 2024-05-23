@@ -26,4 +26,4 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t parent_i
  */
 int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx);
 
-int dentry_write_back(uint64_t pblock, uint64_t block_id);
+int dentry_add(struct ext4_dir_entry_2 *last_de, struct ext4_dir_entry_2 *de);

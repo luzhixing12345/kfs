@@ -5,6 +5,10 @@
 
 #include "ext4/ext4.h"
 
+struct bitmap {
+    uint64_t **data;
+};
+
 int bitmap_init();
 
 /**
@@ -16,9 +20,27 @@ int bitmap_init();
 uint32_t bitmap_inode_find(uint32_t inode_idx);
 
 /**
- * @brief find a free block in block bitmap
+ * @brief set inode bitmap to 1/0
  * 
  * @param inode_idx 
+ * @param is_used
+ * @return int 
+ */
+int bitmap_inode_set(uint32_t inode_idx, int is_used);
+
+/**
+ * @brief find a free block in block bitmap
+ *
+ * @param inode_idx
  * @return uint64_t 0 if no free block
  */
-uint64_t bitmap_block_find(uint32_t inode_idx);
+uint64_t bitmap_pblock_find(uint32_t inode_idx);
+
+/**
+ * @brief set block bitmap to 1/0
+ * 
+ * @param block_idx 
+ * @param is_used 
+ * @return int 
+ */
+int bitmap_pblock_set(uint64_t block_idx, int is_used);
