@@ -31,13 +31,10 @@ struct dcache_entry {
 struct dcache {
     uint32_t inode_idx;  // current inode_idx
     uint32_t lblock;     // current logic block id
-    int status;          // 0: invalid, 1: valid, 2: dirty
+    uint32_t pblock;     // current physical block id, for quick write back
     uint8_t buf[];       // buffer
 };
 
-#define DCACHE_S_INVAL 0
-#define DCACHE_S_VALID 1
-#define DCACHE_S_DIRTY 2
 
 int cache_init();
 

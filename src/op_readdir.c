@@ -28,7 +28,7 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     DEBUG("readdir path %s offset %d", path, offset);
 
     UNUSED(fi);
-    char name_buf[EXT4_NAME_LEN];
+    char name_buf[EXT4_NAME_LEN + 1];
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_inode *inode;
 
@@ -40,16 +40,16 @@ int op_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     }
 
     dcache_init(inode, inode_idx);
-    while ((de = dentry_next(inode, offset))) {
+    while ((de = dentry_next(inode, inode_idx, offset))) {
         offset += de->rec_len;
 
-        if (!de->inode_idx) {
-            /* It seems that is possible to have a dummy entry like this at the
-             * begining of a block of dentries.  Looks like skipping is the
-             * reasonable thing to do. */
-            continue;
+        if (de->inode_idx == 0 && de->name_len == 0) {
+            // reach the ext4_dir_entry_tail
+            ASSERT(((struct ext4_dir_entry_tail *)de)->det_reserved_ft == EXT4_FT_DIR_CSUM);
+            INFO("inode %u last dentry", inode_idx);
+            break;
         }
-
+        DEBUG("pass dentry %s[%u:%u]", de->name, de->inode_idx, de->rec_len);
         /* Providing offset to the filler function seems slower... */
         get_printable_name(name_buf, de);
         if (name_buf[0]) {

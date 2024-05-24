@@ -19,7 +19,7 @@ extern struct bitmap d_bitmap;
 
 #define MALLOC_BLOCKS(__blks)   (malloc(BLOCKS2BYTES(__blks)))
 #define ALIGN_TO_BLOCKSIZE(__n) (ALIGN_TO(__n, BLOCK_SIZE))
-#define BIT(bitmap, __n)        ((bitmap)[(__n) / 8] & (1 << ((__n) % 8)))
+#define BIT0(bitmap, __n)       (!((bitmap)[(__n) / 8] & (1 << ((__n) % 8))))
 #define SET_BIT(bitmap_ptr, __n, __v)                        \
     do {                                                     \
         char *byte_ptr = (char *)(bitmap_ptr) + ((__n) / 8); \

@@ -56,6 +56,7 @@ int super_group_fill(void) {
     return 0;
 }
 
+
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     INFO("Using FUSE protocol %d.%d", info->proto_major, info->proto_minor);
     cfg->kernel_cache = 1;  // Enable kernel cache

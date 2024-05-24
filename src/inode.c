@@ -106,7 +106,6 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     if (inode_idx == 0) {
         return -ENOENT;
     }
-    inode_idx--; /* Inode 0 doesn't exist on disk */
 
     // first try to find in icache
     struct ext4_inode *ic_entry = icache_find(inode_idx);
@@ -186,9 +185,12 @@ uint32_t inode_get_idx_by_path(const char *path) {
         dcache_init(inode, inode_idx);
         while ((de = dentry_next(inode, inode_idx, offset))) {
             offset += de->rec_len;
-            if (!de->inode_idx) {
-                INFO("reach the end of the directory");
-                continue;
+            if (de->inode_idx == 0 && de->name_len == 0) {
+                // reach the ext4_dir_entry_tail
+                ASSERT(((struct ext4_dir_entry_tail *)de)->det_reserved_ft == EXT4_FT_DIR_CSUM);
+                INFO("reach the last dentry");
+                de = NULL;
+                break;
             }
             INFO("get dentry %s[%d]", de->name, de->inode_idx);
 
@@ -233,6 +235,8 @@ int inode_get_by_path(const char *path, struct ext4_inode **inode, uint32_t *ino
 }
 
 uint64_t inode_get_offset(uint32_t inode_idx) {
+    ASSERT(inode_idx != 0);
+    inode_idx--;
     // first calculate inode_idx in which group
     uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     ASSERT(group_idx < EXT4_N_BLOCK_GROUPS(sb));
@@ -240,7 +244,7 @@ uint64_t inode_get_offset(uint32_t inode_idx) {
     // get inode table offset by gdt
     uint64_t off = EXT4_DESC_INODE_TABLE(gdt[group_idx]);
     off = BLOCKS2BYTES(off) + (inode_idx % EXT4_INODES_PER_GROUP(sb)) * EXT4_S_INODE_SIZE(sb);
-    DEBUG("inode_idx: %u, group_idx: %u, off: %lu", inode_idx, group_idx, off);
+    DEBUG("inode_idx: %u, group_idx: %u, off: %lu", inode_idx + 1, group_idx, off);
     return off;
 }
 
@@ -255,31 +259,39 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     DEBUG("inode uid %d, inode gid %d", i_uid, i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);
 
-    // 检查用户是否是超级用户
+    // allow for root
     if (uid == 0) {
         INFO("Permission granted");
-        return 0;  // root用户允许所有操作
+        return 0;
     }
 
-    // 根据访问模式、文件所有者检查权限(只读、只写、读写)
+    // user check
     if (i_uid == uid) {
         if ((mode == RD_ONLY && (inode->i_mode & S_IRUSR)) || (mode == WR_ONLY && (inode->i_mode & S_IWUSR)) ||
             (mode == RDWR && ((inode->i_mode & S_IRUSR) && (inode->i_mode & S_IWUSR)))) {
             INFO("Permission granted");
-            return 0;  // 允许操作
+            return 0;
         }
     }
 
-    // 组用户检查
+    // group check
     if (i_gid == gid) {
         if ((mode == RD_ONLY && (inode->i_mode & S_IRGRP)) || (mode == WR_ONLY && (inode->i_mode & S_IWGRP)) ||
             (mode == RDWR && ((inode->i_mode & S_IRGRP) && (inode->i_mode & S_IWGRP)))) {
             INFO("Permission granted");
-            return 0;  // 允许操作
+            return 0;
+        }
+    } else {
+        // other check
+        if ((mode == RD_ONLY && (inode->i_mode & S_IROTH)) || (mode == WR_ONLY && (inode->i_mode & S_IWOTH)) ||
+            (mode == RDWR && ((inode->i_mode & S_IROTH) && (inode->i_mode & S_IWOTH)))) {
+            INFO("Permission granted");
+            return 0;
         }
     }
 
-    return -EACCES;  // 访问拒绝
+    INFO("Permission denied");
+    return -EACCES;
 }
 
 // find the path's directory inode_idx
@@ -306,25 +318,24 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     EXT4_INODE_SET_GID(**inode, cntx->gid);
     (*inode)->i_links_count = 1;
     // ext4 extent header in block[0-3]
-    struct ext4_extent_header eh;
-    eh.eh_magic = EXT4_EXT_MAGIC;
-    eh.eh_entries = 1;
-    eh.eh_max = EXT4_EXT_EH_MAX;
-    eh.eh_depth = 0;
-    eh.eh_generation = EXT4_EXT_EH_GENERATION;
-    memcpy((*inode)->i_block, &eh, sizeof(struct ext4_extent_header));
+    struct ext4_extent_header *eh = (struct ext4_extent_header *)((*inode)->i_block);
+    eh->eh_magic = EXT4_EXT_MAGIC;
+    eh->eh_entries = 1;
+    eh->eh_max = EXT4_EXT_EH_MAX;
+    eh->eh_depth = 0;
+    eh->eh_generation = EXT4_EXT_EH_GENERATION;
 
     // new inode has one ext4 extent
-    struct ext4_extent ee;
-    ee.ee_block = 0;
-    ee.ee_len = 1;
-    ee.ee_start_hi = (pblock >> 32) & MASK_16;
-    ee.ee_start_lo = (pblock & MASK_32);
-    memcpy((*inode)->i_block + sizeof(struct ext4_extent_header), &ee, sizeof(struct ext4_extent));
+    struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
+    ee->ee_block = 0;
+    ee->ee_len = 1;
+    ee->ee_start_hi = (pblock >> 32) & MASK_16;
+    ee->ee_start_lo = (pblock & MASK_32);
+    INFO("hi[%u] lo[%u]", ee->ee_start_hi, ee->ee_start_lo);
+
     // set other 3 ext extents to 0
-    memset((*inode)->i_block + sizeof(struct ext4_extent_header) + sizeof(struct ext4_extent),
-           0,
-           3 * sizeof(struct ext4_extent));
+    ee++;
+    memset(ee, 0, 3 * sizeof(struct ext4_extent));
     ICACHE_DIRTY(*inode);  // mark new inode as dirty
     INFO("new inode %u created", inode_idx);
     return 0;

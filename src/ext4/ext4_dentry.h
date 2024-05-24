@@ -82,6 +82,8 @@ struct ext4_dir_entry_tail {
     __le32 det_checksum;        // Directory leaf block checksum.
 };
 
-#define EXT4_FT_DIR_CSUM 0xDE
+#define EXT4_FT_DIR_CSUM  0xDE
+#define EXT4_DE_TAIL_SIZE 12
+#define EXT4_DE_DOT_SIZE  12  // . ..
 
 #endif

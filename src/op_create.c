@@ -23,6 +23,6 @@ extern struct ext4_group_desc *gdt;
  */
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     DEBUG("create path %s with mode %o", path, mode);
-
+    
     return 0;
 }

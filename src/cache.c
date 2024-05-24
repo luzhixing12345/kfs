@@ -43,8 +43,8 @@ int cache_init() {
     dcache_init_root(ROOT_INODE_N);
     dcache = malloc(sizeof(struct dcache) + BLOCK_SIZE);
     dcache->lblock = -1;
+    dcache->pblock = -1;
     dcache->inode_idx = 0;
-    dcache->status = DCACHE_S_INVAL;
     INFO("dcache init");
 
     icache = malloc(sizeof(struct icache));
@@ -55,15 +55,10 @@ int cache_init() {
 }
 
 void dcache_update(struct ext4_inode *inode, uint32_t lblock) {
-    uint64_t dir_pblock = inode_get_data_pblock(inode, lblock, NULL);
-    // if dcache is dirty, write back to disk
-    if (dcache->status == DCACHE_S_DIRTY && dcache->lblock != lblock) {
-        // when this function is called, inode is the same as dcache->inode_idx
-        disk_write_block(inode_get_data_pblock(inode, dcache->lblock, NULL), dcache->buf);
-    }
-    disk_read_block(dir_pblock, dcache->buf);
+    uint64_t pblock = inode_get_data_pblock(inode, lblock, NULL);
+    disk_read_block(pblock, dcache->buf);
     dcache->lblock = lblock;
-    dcache->status = DCACHE_S_VALID;
+    dcache->pblock = pblock;
 }
 
 /**
@@ -77,13 +72,12 @@ void dcache_init(struct ext4_inode *inode, uint32_t inode_idx) {
     ICACHE_UPDATE_CNT(inode);  // update lru count
 
     // if already initialized
-    if (dcache->status != DCACHE_S_INVAL && dcache->inode_idx == inode_idx && dcache->lblock == 0) {
+    if (dcache->inode_idx == inode_idx && dcache->lblock == 0) {
         DEBUG("already dcache for inode %u", inode_idx);
         return;
     }
 
     dcache->inode_idx = inode_idx;
-    dcache->status = DCACHE_S_VALID;
     DEBUG("dctx preload for inode %u", inode_idx);
     dcache_update(inode, 0);
 }
@@ -130,7 +124,7 @@ struct dcache_entry *decache_insert(struct dcache_entry *parent, const char *nam
 
     if (!parent->childs) {
         // add as first child
-        DEBUG("parent has no childs");
+        DEBUG("parent has no childs, add as first child %s", new_entry->name);
         new_entry->siblings = new_entry;
         parent->childs = new_entry;
     } else {
@@ -183,7 +177,7 @@ struct dcache_entry *decache_lookup(struct dcache_entry *parent, const char *nam
  */
 struct ext4_inode *icache_find(uint32_t inode_idx) {
     for (int i = 0; i < icache->count; i++) {
-        if (icache->entries[i].status && icache->entries[i].inode_idx == inode_idx) {
+        if (icache->entries[i].status != ICACHE_S_INVAL && icache->entries[i].inode_idx == inode_idx) {
             return &icache->entries[i].inode;
         }
     }
@@ -206,7 +200,7 @@ struct ext4_inode *icache_lru_replace(uint32_t inode_idx, int read_from_disk) {
             icache->entries[i].inode_idx = inode_idx;
             icache->entries[i].status = ICACHE_S_VALID;
             icache->entries[i].lru_count = 0;
-            INFO("replace invalid entry %d by inode %d", i, inode_idx);
+            INFO("replace invalid entry %d by inode %d", i, inode_idx + 1);
             return &icache->entries[i].inode;
         }
         // find the least recently used entry
