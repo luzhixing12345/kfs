@@ -30,6 +30,11 @@ static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset
         offset,
         offset + size);
 
+    if (inode_size == 0) {
+        INFO("empty file, returning 0");
+        return 0;
+    }
+
     if (offset >= inode_size) {
         ERR("Offset %lu is greater than inode size %lu", offset, inode_size);
         return -EINVAL;
@@ -89,7 +94,6 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
     size_t ret = 0;
     uint32_t extent_len;
 
-    /* Not sure if this is possible at all... */
     ASSERT(offset >= 0);
 
     DEBUG("read(%s, buf, %zd, %zd, fi->fh=%d)", path, size, un_offset, fi->fh);
@@ -102,6 +106,8 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
     if (size < 0) {
         ERR("Failed to truncate read(2) size");
         return size;
+    } else if (size == 0) {
+        return 0;
     }
     ret = first_read(inode, buf, size, un_offset);
 

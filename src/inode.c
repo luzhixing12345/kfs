@@ -316,7 +316,17 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     struct fuse_context *cntx = fuse_get_context();
     EXT4_INODE_SET_UID(**inode, cntx->uid);
     EXT4_INODE_SET_GID(**inode, cntx->gid);
-    (*inode)->i_links_count = 1;
+
+    // dir has 2 links and others have 1 link
+    (*inode)->i_links_count = mode & S_IFDIR ? 2 : 1;
+
+    // new created inode has 0 block and 0 size
+    EXT4_INODE_SET_BLOCKS(**inode, 0);
+    EXT4_INODE_SET_SIZE(**inode, 0);
+
+    // enable ext4 extents flag
+    (*inode)->i_flags |= EXT4_EXTENTS_FL;
+
     // ext4 extent header in block[0-3]
     struct ext4_extent_header *eh = (struct ext4_extent_header *)((*inode)->i_block);
     eh->eh_magic = EXT4_EXT_MAGIC;
