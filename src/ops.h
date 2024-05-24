@@ -26,7 +26,6 @@ int op_chmod(const char *, mode_t, struct fuse_file_info *fi);
 int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi);
 int op_truncate(const char *path, off_t size, struct fuse_file_info *fi);
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
-int op_opendir(const char *path, struct fuse_file_info *fi);
 int op_releasedir(const char *path, struct fuse_file_info *fi);
 int op_statfs(const char *path, struct statvfs *stbuf);
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi);

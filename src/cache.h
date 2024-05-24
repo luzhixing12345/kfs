@@ -46,6 +46,7 @@ int cache_init();
  */
 void dcache_init(struct ext4_inode *inode, uint32_t inode_idx);
 void dcache_update(struct ext4_inode *inode, uint32_t lblock);
+int dcache_write_back();
 
 #define ICACHE_MAX_COUNT 64
 

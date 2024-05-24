@@ -7,6 +7,8 @@
  * more details.
  */
 
+#include "inode.h"
+
 #include <errno.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -16,13 +18,12 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "bitmap.h"
 #include "cache.h"
 #include "common.h"
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
-#include "ext4/ext4_basic.h"
-#include "ext4/ext4_inode.h"
 #include "extents.h"
 #include "fuse.h"
 #include "logging.h"
@@ -102,6 +103,14 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
+int inode_get_all_pblocks(struct ext4_inode *inode, uint64_t *pblocks, uint32_t *len) {
+    if (inode->i_flags & EXT4_EXTENTS_FL) {
+        // inode use ext4 extents
+        // return extent_get_all_pblocks(&inode->i_block, pblocks, len);
+    }
+    return 0;
+}
+
 int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     if (inode_idx == 0) {
         return -ENOENT;
@@ -157,9 +166,6 @@ struct dcache_entry *get_cached_inode_idx(const char **path) {
 uint32_t inode_get_idx_by_path(const char *path) {
     uint32_t inode_idx = 0;
     struct ext4_inode *inode;
-
-    /* Paths from fuse are always absolute */
-    assert(IS_PATH_SEPARATOR(path[0]));
 
     DEBUG("Looking up: %s", path);
 
@@ -307,6 +313,17 @@ uint32_t inode_get_parent_idx_by_path(const char *path) {
     return parent_idx;
 }
 
+int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx) {
+    uint32_t parent_idx = inode_get_parent_idx_by_path(path);
+    if (parent_idx == 0) {
+        return -ENOENT;
+    }
+    if (inode_idx != NULL) {
+        *inode_idx = parent_idx;
+    }
+    return inode_get_by_number(parent_idx, inode);
+}
+
 int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode) {
     *inode = icache_insert(inode_idx, 0);
     memset(*inode, 0, sizeof(struct ext4_inode));
@@ -349,4 +366,42 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     ICACHE_DIRTY(*inode);  // mark new inode as dirty
     INFO("new inode %u created", inode_idx);
     return 0;
+}
+
+int inode_bitmap_has_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock) {
+    // find a valid inode_idx in GDT
+    *inode_idx = bitmap_inode_find(parent_idx);
+    if (*inode_idx == 0) {
+        ERR("No free inode");
+        return -ENOSPC;
+    }
+
+    // find an empty data block
+    *pblock = bitmap_pblock_find(*inode_idx);
+    if (*pblock == U64_MAX) {
+        ERR("No free block");
+        return -ENOSPC;
+    }
+    INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
+    return 0;
+}
+
+int inode_mode2type(mode_t mode) {
+    if (mode & S_IFDIR) {
+        return EXT4_FT_DIR;
+    } else if (mode & S_IFREG) {
+        return EXT4_FT_REG_FILE;
+    } else if (mode & S_IFLNK) {
+        return EXT4_FT_SYMLINK;
+    } else if (mode & S_IFCHR) {
+        return EXT4_FT_CHRDEV;
+    } else if (mode & S_IFBLK) {
+        return EXT4_FT_BLKDEV;
+    } else if (mode & S_IFIFO) {
+        return EXT4_FT_FIFO;
+    } else if (mode & S_IFSOCK) {
+        return EXT4_FT_SOCK;
+    } else {
+        return EXT4_FT_UNKNOWN;
+    }
 }

@@ -8,6 +8,7 @@
 #include "cache.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_dentry.h"
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 
@@ -38,7 +39,7 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_id
 }
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_idx, uint64_t *lblock) {
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_idx) {
     uint64_t offset = 0;
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_dir_entry_2 *de_next = NULL;
@@ -48,8 +49,6 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_id
         if (de_next->inode_idx == 0 && de_next->name_len == 0) {
             // reach the ext4_dir_entry_tail
             ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
-            *lblock = (offset - 1) / BLOCK_SIZE;
-            INFO("reach the last dentry, lblock %u", *lblock);
             return de;
         }
         ASSERT(offset <= 4096);
@@ -61,7 +60,7 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_id
 }
 
 // create a dentry by name and inode_idx
-int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx) {
+int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx, int file_type) {
     uint16_t left_space = de->rec_len;
     // update de rec_len to be the real rec_len
     de->rec_len = DE_REAL_REC_LEN(de);
@@ -71,6 +70,7 @@ int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx) {
     new_de->inode_idx = inode_idx;
     new_de->name_len = strlen(name);
     new_de->rec_len = left_space - de->rec_len;  // left space set in the new de
+    new_de->file_type = file_type;
     strncpy(new_de->name, name, new_de->name_len);
     new_de->name[new_de->name_len] = 0;
     INFO("create new dentry %s[%u:%u:%u]", new_de->name, inode_idx, new_de->name_len, new_de->rec_len);
@@ -106,5 +106,41 @@ int dentry_init(uint32_t parent_idx, uint32_t inode_idx) {
     de_dot2->file_type = EXT4_FT_DIR;
     strncpy(de_dot2->name, "..", 2);
     de_dot2->name[2] = 0;
+    return 0;
+}
+
+int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name) {
+    INFO("delete dentry %s", name);
+    dcache_init(inode, inode_idx);
+    struct ext4_dir_entry_2 *de = NULL, *de_next;
+    uint64_t offset = 0;
+    while ((de_next = dentry_next(inode, inode_idx, offset))) {
+        offset += de_next->rec_len;
+        if (strncmp(de_next->name, name, de_next->name_len) == 0) {
+            // delete dentry just means add de_next->rec_len to de->rec_len
+            ASSERT(de != NULL);
+            de->rec_len += de_next->rec_len;
+            return 0;
+        }
+        // if reach the end
+        if (de_next->inode_idx == 0 && de_next->name_len == 0) {
+            ERR("dentry %s not found", name);
+            ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
+            return -ENOENT;
+        }
+        de = de_next;
+    }
+    return -ENOENT;
+}
+
+int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
+    __le16 rec_len = ALIGN_TO_DENTRY(EXT4_DE_BASE_SIZE + strlen(name));
+    __le16 left_space = de->rec_len - DE_REAL_REC_LEN(de);
+    INFO("for new de %s: require space %u | left space %u", name, rec_len, left_space);
+    if (left_space < rec_len) {
+        ERR("No space for new dentry");
+        return -ENOSPC;
+    }
+    INFO("space for new dentry is enough");
     return 0;
 }

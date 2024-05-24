@@ -20,6 +20,7 @@
 #define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);
+int inode_get_all_pblocks(struct ext4_inode *inode, uint64_t *pblocks, uint32_t *len);
 
 int inode_get_by_number(uint32_t n, struct ext4_inode **inode);
 int inode_get_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx);
@@ -37,24 +38,28 @@ int inode_find_free();
 
 /**
  * @brief create a new inode
- * 
- * @param inode_idx 
- * @param mode 
- * @param pblock 
- * @param inode 
- * @return int 
+ *
+ * @param inode_idx
+ * @param mode
+ * @param pblock
+ * @param inode
+ * @return int
  */
 int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode);
 
 uint32_t inode_get_parent_idx_by_path(const char *path);
-
+int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx);
 /**
  * @brief write back the inode to disk
- * 
- * @param inode_idx 
- * @param inode 
- * @return int 
+ *
+ * @param inode_idx
+ * @param inode
+ * @return int
  */
 int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode);
+
+int inode_bitmap_has_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock);
+
+int inode_mode2type(mode_t mode);
 
 #endif

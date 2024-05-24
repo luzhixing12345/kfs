@@ -14,7 +14,7 @@
 struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_idx, uint64_t offset);
 
 // find the last dentry
-struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_idx, uint64_t *lblock);
+struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_idx);
 
 /**
  * @brief create a dentry by name and inode_idx
@@ -24,6 +24,19 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_id
  * @param inode_idx
  * @return int
  */
-int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx);
+int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx, int file_type);
+
+int dentry_add(struct ext4_inode *inode, uint32_t dir_inode_idx, uint32_t inode_idx, char *name);
 
 int dentry_init(uint32_t parent_idx, uint32_t inode_idx);
+
+int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name);
+
+/**
+ * @brief whether the dentry has enough space for a new dentry
+ *
+ * @param de
+ * @param name
+ * @return int
+ */
+int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name);

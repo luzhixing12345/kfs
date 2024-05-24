@@ -39,8 +39,7 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     }
 
     // check if the parent inode has empty space for a new dentry
-    uint64_t parent_lblock;  // for disk write back
-    struct ext4_dir_entry_2 *de = dentry_last(inode, parent_idx, &parent_lblock);
+    struct ext4_dir_entry_2 *de = dentry_last(inode, parent_idx);
     if (de == NULL) {
         ERR("parent inode has no dentry");
         return -ENOENT;
@@ -71,8 +70,7 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     INFO("new dentry %s: [inode:%u] [block_idx:%u]", name, inode_idx, pblock_idx);
 
     // create a new dentry, and write back to disk
-    dentry_create(de, name, inode_idx);
-    ASSERT(dcache->inode_idx == parent_idx && dcache->lblock == parent_lblock);
+    dentry_create(de, name, inode_idx, EXT4_FT_REG_FILE);
     disk_write_block(dcache->pblock, dcache->buf);
     INFO("write back new dentry(in parent inode) to disk");
 

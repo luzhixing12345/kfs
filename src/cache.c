@@ -97,6 +97,11 @@ int dcache_init_root(uint32_t n) {
     return 0;
 }
 
+int dcache_write_back() {
+    INFO("write back data to disk");
+    return disk_write_block(dcache->pblock, dcache->buf);
+}
+
 /* Inserts a node as a childs of a given parent.  The parent is updated to
  * point the newly inserted childs as the first childs.  We return the new
  * entry so that further entries can be inserted.
