@@ -61,7 +61,7 @@ int op_mkdir(const char *path, mode_t mode) {
 
     // find an empty data block
     uint64_t dir_pblock_idx = bitmap_pblock_find(dir_idx);
-    if (dir_pblock_idx == 0) {
+    if (dir_pblock_idx == U64_MAX) {
         ERR("No free block");
         return -ENOSPC;
     }
@@ -84,8 +84,8 @@ int op_mkdir(const char *path, mode_t mode) {
     INFO("create new inode");
 
     // update inode and data bitmap
-    bitmap_inode_set(parent_idx, 1);
-    bitmap_pblock_set(dir_idx, 1);
+    bitmap_inode_set(dir_idx, 1);
+    bitmap_pblock_set(dir_pblock_idx, 1);
     // just set bitmap and not write back to disk here for performance
     // write back bitmap to disk when fs is destory
     INFO("set inode and data bitmap");

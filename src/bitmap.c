@@ -54,7 +54,7 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
     // TODO: better inode select
     // for now, just simply find the first free inode in i_bitmap
     uint32_t new_inode_idx = 0;
-    for (uint32_t i = inode_idx % EXT4_INODES_PER_GROUP(sb) + 1; i < EXT4_INODES_PER_GROUP(sb); i++) {
+    for (uint32_t i = 0; i < EXT4_INODES_PER_GROUP(sb); i++) {
         if (BIT0(i_bitmap.group[group_idx].bitmap, i)) {
             new_inode_idx = (group_idx * EXT4_INODES_PER_GROUP(sb)) + i + 1;
             INFO("found free inode %u", new_inode_idx);
@@ -79,6 +79,8 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
 }
 
 int bitmap_inode_set(uint32_t inode_idx, int is_used) {
+    ASSERT(inode_idx != 0);
+    inode_idx--;
     uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     uint32_t index = inode_idx % EXT4_INODES_PER_GROUP(sb);
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
