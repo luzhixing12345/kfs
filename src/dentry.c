@@ -110,23 +110,28 @@ int dentry_init(uint32_t parent_idx, uint32_t inode_idx) {
 }
 
 int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name) {
-    INFO("delete dentry %s", name);
+    INFO("try to delete dentry %s", name);
+    uint64_t name_len = strlen(name);
     dcache_init(inode, inode_idx);
     struct ext4_dir_entry_2 *de = NULL, *de_next;
     uint64_t offset = 0;
     while ((de_next = dentry_next(inode, inode_idx, offset))) {
         offset += de_next->rec_len;
-        if (strncmp(de_next->name, name, de_next->name_len) == 0) {
-            // delete dentry just means add de_next->rec_len to de->rec_len
-            ASSERT(de != NULL);
-            de->rec_len += de_next->rec_len;
-            return 0;
-        }
         // if reach the end
         if (de_next->inode_idx == 0 && de_next->name_len == 0) {
             ERR("dentry %s not found", name);
             ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
             return -ENOENT;
+        }
+
+        INFO("dentry %s[%d]", de_next->name, de_next->inode_idx);
+        if (strncmp(de_next->name, name, name_len) == 0) {
+            // delete dentry just means add de_next->rec_len to de->rec_len
+            ASSERT(de != NULL);
+            INFO("merge de[%s] and de[%s]", de->name, de_next->name);
+            INFO("de[%s] rec_len %u -> %u", de->name, de->rec_len, de->rec_len + de_next->rec_len);
+            de->rec_len += de_next->rec_len;
+            return 0;
         }
         de = de_next;
     }

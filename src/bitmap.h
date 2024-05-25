@@ -12,8 +12,18 @@ struct bitmap {
 
 struct bitmap_group {
     uint8_t *bitmap;  // bitmap of each block group
-    uint64_t off;  // offset of each block group
-    int status;    // 0: valid, 1: dirty
+    uint64_t off;     // offset of each block group
+    int status;       // 0: valid, 1: dirty
+};
+
+struct pblock_range {
+    uint64_t pblock;  // start of pblock
+    uint16_t len;     // length of pblock
+};
+
+struct pblock_arr {
+    struct pblock_range *arr;
+    uint16_t len;
 };
 
 #define BITMAP_S_VALID 0
@@ -54,5 +64,5 @@ uint64_t bitmap_pblock_find(uint32_t inode_idx);
  * @return int
  */
 int bitmap_pblock_set(uint64_t block_idx, int is_used);
-
+int bitmap_pblock_free(struct pblock_arr *arr);
 void gdt_update(uint32_t inode_idx);

@@ -1,4 +1,5 @@
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "bitmap.h"
@@ -16,13 +17,9 @@ int op_unlink(const char *path) {
 
     // remove dir inode's dentry
     struct ext4_inode *d_inode;
-    uint32_t d_inode_idx = inode_get_parent_idx_by_path(path);
-    if (d_inode_idx == 0) {
-        DEBUG("fail to get inode %s", path);
-        return -ENOENT;
-    }
-    if (inode_get_by_number(d_inode_idx, &d_inode) < 0) {
-        DEBUG("fail to get inode %d", d_inode_idx);
+    uint32_t d_inode_idx;
+    if (inode_get_parent_by_path(path, &d_inode, &d_inode_idx) < 0) {
+        DEBUG("fail to get dir inode %s", path);
         return -ENOENT;
     }
     DEBUG("get dir inode %d", d_inode_idx);
@@ -47,11 +44,17 @@ int op_unlink(const char *path) {
 
     // delete it only if link_count == 0
     if (inode->i_links_count == 0) {
+        INFO("delete inode %s[%d]", name, inode_idx);
         // just set inode and data bitmap to 0 is ok
         bitmap_inode_set(inode_idx, 0);
+        struct pblock_arr p_arr;
+        inode_get_all_pblocks(inode, &p_arr);
+        bitmap_pblock_free(&p_arr);
+        ICACHE_INVAL(inode);
     } else {
         ICACHE_DIRTY(inode);
     }
 
+    DEBUG("unlinked inode %d", inode_idx);
     return 0;
 }

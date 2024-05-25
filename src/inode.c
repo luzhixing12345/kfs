@@ -24,6 +24,7 @@
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_extents.h"
 #include "extents.h"
 #include "fuse.h"
 #include "logging.h"
@@ -103,10 +104,30 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-int inode_get_all_pblocks(struct ext4_inode *inode, uint64_t *pblocks, uint32_t *len) {
+// TODO: ext4 extents
+int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_arr) {
+    // uint64_t inode_block_count = EXT4_INODE_SIZE(inode);
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         // inode use ext4 extents
-        // return extent_get_all_pblocks(&inode->i_block, pblocks, len);
+        struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
+        struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
+        ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
+        // TODO eh->eh_depth > 0
+        if (eh->eh_depth == 0) {
+            pblock_arr->len = eh->eh_entries;
+            pblock_arr->arr = malloc(pblock_arr->len * sizeof(struct pblock_range));
+            for (int i = 0; i < pblock_arr->len; i++) {
+                pblock_arr->arr[i].pblock = ee[i].ee_block;
+                pblock_arr->arr[i].len = ee[i].ee_len;
+            }
+            INFO("get all pblocks done");
+        } else {
+            ASSERT(0);
+        }
+    } else {
+        // old ext2/3 style, for backward compatibility
+        // direct block, indirect block, dindirect block, tindirect block
+        ASSERT(0);
     }
     return 0;
 }
@@ -273,8 +294,9 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
 
     // user check
     if (i_uid == uid) {
-        if ((mode == RD_ONLY && (inode->i_mode & S_IRUSR)) || (mode == WR_ONLY && (inode->i_mode & S_IWUSR)) ||
-            (mode == RDWR && ((inode->i_mode & S_IRUSR) && (inode->i_mode & S_IWUSR)))) {
+        if ((mode == READ && (inode->i_mode & S_IRUSR)) || (mode == WRITE && (inode->i_mode & S_IWUSR)) ||
+            (mode == RDWR && ((inode->i_mode & S_IRUSR) && (inode->i_mode & S_IWUSR))) ||
+            (mode == EXEC && (inode->i_mode & S_IXUSR))) {
             INFO("Permission granted");
             return 0;
         }
@@ -282,15 +304,17 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
 
     // group check
     if (i_gid == gid) {
-        if ((mode == RD_ONLY && (inode->i_mode & S_IRGRP)) || (mode == WR_ONLY && (inode->i_mode & S_IWGRP)) ||
-            (mode == RDWR && ((inode->i_mode & S_IRGRP) && (inode->i_mode & S_IWGRP)))) {
+        if ((mode == READ && (inode->i_mode & S_IRGRP)) || (mode == WRITE && (inode->i_mode & S_IWGRP)) ||
+            (mode == RDWR && ((inode->i_mode & S_IRGRP) && (inode->i_mode & S_IWGRP))) ||
+            (mode == EXEC && (inode->i_mode & S_IXGRP))) {
             INFO("Permission granted");
             return 0;
         }
     } else {
         // other check
-        if ((mode == RD_ONLY && (inode->i_mode & S_IROTH)) || (mode == WR_ONLY && (inode->i_mode & S_IWOTH)) ||
-            (mode == RDWR && ((inode->i_mode & S_IROTH) && (inode->i_mode & S_IWOTH)))) {
+        if ((mode == READ && (inode->i_mode & S_IROTH)) || (mode == WRITE && (inode->i_mode & S_IWOTH)) ||
+            (mode == RDWR && ((inode->i_mode & S_IROTH) && (inode->i_mode & S_IWOTH))) ||
+            (mode == EXEC && (inode->i_mode & S_IXOTH))) {
             INFO("Permission granted");
             return 0;
         }

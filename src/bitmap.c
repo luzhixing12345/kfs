@@ -121,6 +121,19 @@ int bitmap_pblock_set(uint64_t block_idx, int is_used) {
     return 0;
 }
 
+int bitmap_pblock_free(struct pblock_arr *p_arr) {
+    struct pblock_range *range;
+    for (uint16_t i = 0; i < p_arr->len; i++) {
+        range = &p_arr->arr[i];
+        for (uint16_t j = 0; j < range->len; j++) {
+            bitmap_pblock_set(range->pblock + j, 0);
+        }
+    }
+    free(p_arr->arr);
+    INFO("free pblocks done");
+    return 0;
+}
+
 void gdt_update(uint32_t inode_idx) {
     int group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     uint32_t free_blocks = EXT4_GDT_FREE_BLOCKS(&gdt[group_idx]) - 1;

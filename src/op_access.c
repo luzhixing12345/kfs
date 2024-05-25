@@ -1,6 +1,7 @@
 
 #include <errno.h>
 #include <sys/types.h>
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -17,48 +18,34 @@
 int op_access(const char *path, int mask) {
     DEBUG("access path %s with mask %o", path, mask);
 
-    if (!(mask & X_OK)) {
-        ERR("Permission denied");
-        return -EACCES;
-    }
-
     struct ext4_inode *inode;
+
     if (inode_get_by_path(path, &inode, NULL) < 0) {
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }
 
     // check permission
-    struct fuse_context *cntx = fuse_get_context();
-    uid_t uid = cntx->uid;
-    gid_t gid = cntx->gid;
-
-    // root user allow all permission
-    if (uid == 0) {
-        INFO("Permission granted");
-        return 0;
-    }
-
-    if (uid == EXT4_INODE_UID(inode)) {
-        if (inode->i_mode & S_IXUSR) {
-            INFO("Permission granted");
-            return 0;
+    if (mask & W_OK) {
+        if (inode_check_permission(inode, WRITE) < 0) {
+            ERR("Permission denied");
+            return -EACCES;
         }
     }
 
-    if (gid == EXT4_INODE_GID(inode)) {
-        if (inode->i_mode & S_IXGRP) {
-            INFO("Permission granted");
-            return 0;
-        }
-    } else {
-        if (inode->i_mode & S_IXOTH) {
-            INFO("Permission granted");
-            return 0;  
+    if (mask & R_OK) {
+        if (inode_check_permission(inode, READ) < 0) {
+            ERR("Permission denied");
+            return -EACCES;
         }
     }
 
-    // no permission
-    ERR("Permission denied");
-    return -EACCES;
+    if (mask & X_OK) {
+        if (inode_check_permission(inode, EXEC) < 0) {
+            ERR("Permission denied");
+            return -EACCES;
+        }
+    }
+    
+    return 0;
 }

@@ -11,7 +11,7 @@
 #include "logging.h"
 #include "ops.h"
 
-int inode_symlink_create(struct ext4_inode *inode, const char *path) {
+static int inode_symlink_create(struct ext4_inode *inode, const char *path) {
     // a small perf for symbolic links
     // if the link len <= 60, save it in the inode
     int link_len = strlen(path);
@@ -34,7 +34,6 @@ int inode_symlink_create(struct ext4_inode *inode, const char *path) {
 
 // TODO: check if to exsists
 // TODO: ln -s xx dir
-// FIXME
 int op_symlink(const char *from, const char *to) {
     DEBUG("create soft symlink from %s to %s", from, to);
 
@@ -55,7 +54,7 @@ int op_symlink(const char *from, const char *to) {
         return err;
     }
 
-    // create a new dentry
+    // create a new dentry in parent dir
     struct ext4_inode *to_dir_inode;
     uint32_t to_dir_inode_idx;
     if (inode_get_parent_by_path(to, &to_dir_inode, &to_dir_inode_idx) < 0) {

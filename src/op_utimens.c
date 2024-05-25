@@ -48,7 +48,7 @@ int op_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
     if (inode_get_by_number(inode_idx, &inode) < 0) {
         return -ENOENT;
     }
-    if (inode_check_permission(inode, WR_ONLY)) {
+    if (inode_check_permission(inode, WRITE)) {
         return -EPERM;
     }
 
