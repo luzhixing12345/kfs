@@ -232,10 +232,10 @@ uint32_t inode_get_idx_by_path(const char *path) {
             inode_idx = de->inode_idx;
 
             // if the entry is a directory, add it to the cache
-            if (de->file_type == EXT4_FT_DIR) {
-                INFO("Add dir entry %s:%d to dentry cache", path, path_len);
-                dc_entry = decache_insert(dc_entry, path, path_len, inode_idx);
-            }
+
+            INFO("Add dir entry %s:%d to dentry cache", path, path_len);
+            dc_entry = decache_insert(dc_entry, path, path_len, inode_idx);
+
             break;
         }
 
@@ -372,7 +372,7 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     struct ext4_extent_header *eh = (struct ext4_extent_header *)((*inode)->i_block);
     eh->eh_magic = EXT4_EXT_MAGIC;
     eh->eh_entries = 1;
-    eh->eh_max = EXT4_EXT_EH_MAX;
+    eh->eh_max = EXT4_EXT_LEAF_EH_MAX;
     eh->eh_depth = 0;
     eh->eh_generation = EXT4_EXT_EH_GENERATION;
 

@@ -8,10 +8,12 @@
  */
 
 #include "extents.h"
+
 #include <stdlib.h>
 
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_extents.h"
 #include "logging.h"
 
 extern struct ext4_super_block sb;
@@ -54,17 +56,21 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
 
 /* Fetches a block that stores extent info and returns an array of extents
  * _with_ its header. */
-static void *extent_get_extents_in_block(uint32_t block) {
-    struct ext4_extent_header eh;
-    void *exts;
+static void *extent_get_extents_in_block(uint32_t pblock) {
+    // first read the extent header
+    void *exts = malloc(sizeof(struct ext4_extent_header));
+    disk_read(BLOCKS2BYTES(pblock), sizeof(struct ext4_extent_header), exts);
+    ASSERT(((struct ext4_extent_header *)exts)->eh_magic == EXT4_EXT_MAGIC);
+    ASSERT(((struct ext4_extent_header *)exts)->eh_max <= EXT4_EXT_EH_MAX);
 
-    disk_read(BLOCKS2BYTES(block), sizeof(struct ext4_extent_header), &eh);
+    // resize exts to hold all the extents
+    uint32_t extents_len = ((struct ext4_extent_header *)exts)->eh_entries * sizeof(struct ext4_extent);
+    exts = realloc(exts, sizeof(struct ext4_extent_header) + extents_len);
 
-    uint32_t extents_len = eh.eh_entries * sizeof(struct ext4_extent) + sizeof(struct ext4_extent_header);
-
-    exts = malloc(extents_len);
-
-    disk_read(BLOCKS2BYTES(block), extents_len, exts);
+    // read the extents
+    disk_read(BLOCKS2BYTES(pblock) + sizeof(struct ext4_extent_header),
+              extents_len,
+              exts + sizeof(struct ext4_extent_header));
 
     return exts;
 }
@@ -76,6 +82,7 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
     uint64_t ret;
 
     ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
+    ASSERT(eh->eh_max <= EXT4_EXT_LEAF_EH_MAX);
     DEBUG("reading inode extent, depth = %d", eh->eh_depth);
 
     if (eh->eh_depth == 0) {
@@ -88,7 +95,6 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
         struct ext4_extent_idx *recurse_ei = NULL;
 
         for (int i = 0; i < eh->eh_entries; i++) {
-            ei_array = extents + sizeof(struct ext4_extent_header);
             ASSERT(ei_array[i].ei_leaf_hi == 0);
 
             if (ei_array[i].ei_block > lblock) {
@@ -98,9 +104,9 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
             recurse_ei = &ei_array[i];
         }
 
-        ASSERT(recurse_ei);
+        ASSERT(recurse_ei != NULL);
 
-        void *leaf_extents = extent_get_extents_in_block(recurse_ei->ei_leaf_lo);
+        void *leaf_extents = extent_get_extents_in_block(EXT4_EXT_LEAF_ADDR(recurse_ei));
         ret = extent_get_pblock(leaf_extents, lblock, len);
         free(leaf_extents);
     }

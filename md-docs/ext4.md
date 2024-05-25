@@ -1,6 +1,12 @@
 
 # ext4
 
+[what are inode numbers 1 and 2 used for](https://stackoverflow.com/questions/24613454/what-are-inode-numbers-1-and-2-used-for)
+
+[why do inode numbers start from 1 and not 0](https://stackoverflow.com/questions/2099121/why-do-inode-numbers-start-from-1-and-not-0/2109363#2109363)
+
+[oracle blogs](https://blogs.oracle.com/linux/post/understanding-ext4-disk-layout-part-2)
+
 ## 参考
 
 - [ext4 disk layout](https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout)

@@ -102,11 +102,13 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
         return -ENOENT;
     }
 
+    // Truncate the read size if it exceeds the limits of the file.
     size = truncate_size(inode, size, un_offset);
     if (size < 0) {
         ERR("Failed to truncate read(2) size");
         return size;
     } else if (size == 0) {
+        DEBUG("file is empty, return 0");
         return 0;
     }
     ret = first_read(inode, buf, size, un_offset);

@@ -48,6 +48,10 @@ struct ext4_extent_idx {
     __u16 ei_unused;
 };
 
+#define EXT4_EXT_LEAF_ADDR(idx) ((((uint64_t)(idx)->ei_leaf_hi) << 32) | (idx)->ei_leaf_lo)
+#define EXT4_EXT_LEAF_SET_ADDR(idx, addr) \
+    ((idx)->ei_leaf_hi = ((addr) >> 32) & MASK_16, (idx)->ei_leaf_lo = (addr & MASK_32))
+
 /*
  * Each block (leaves and indexes), even inode-stored has header.
  */
@@ -61,8 +65,15 @@ struct ext4_extent_header {
 };
 
 #define EXT4_EXT_MAGIC         0xF30A  // extent header magic number
-#define EXT4_EXT_EH_MAX        4
+#define EXT4_EXT_LEAF_EH_MAX   4
 #define EXT4_EXT_EH_GENERATION 0
 #define EXT4_MAX_EXTENT_DEPTH  5
+#define EXT4_EXT_EH_MAX                                                                   \
+    ((BLOCK_SIZE - sizeof(struct ext4_extent_header) - sizeof(struct ext4_extent_tail)) / \
+     sizeof(struct ext4_extent))  // 340 if 4096
+
+struct ext4_extent_tail {
+    __le32 eb_checksum;  // Checksum of the extent block, crc32c(uuid+inum+igeneration+extentblock)
+};
 
 #endif

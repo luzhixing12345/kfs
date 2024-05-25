@@ -88,6 +88,7 @@ DISK_IMG = disk.img
 disk:
 	dd if=/dev/zero of=$(DISK_IMG) bs=1M count=1000
 	$(MKFS) $(DISK_IMG)
+	sudo ./script/init.sh
 
 run:
 	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)

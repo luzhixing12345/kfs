@@ -121,6 +121,7 @@ int bitmap_pblock_set(uint64_t block_idx, int is_used) {
     return 0;
 }
 
+// TODO: better set 0 in range instead of for loop
 int bitmap_pblock_free(struct pblock_arr *p_arr) {
     struct pblock_range *range;
     for (uint16_t i = 0; i < p_arr->len; i++) {
