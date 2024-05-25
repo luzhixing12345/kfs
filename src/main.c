@@ -45,7 +45,6 @@ static struct fuse_operations e4f_ops = {
     .unlink = op_unlink,
     .rmdir = op_rmdir,
     // .rename = op_rename,
-    // .link = op_link,
     .chmod = op_chmod,
     .chown = op_chown,
     // .truncate = op_truncate,

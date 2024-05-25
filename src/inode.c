@@ -104,7 +104,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     return 0;
 }
 
-// TODO: ext4 extents
+// TODO: ext4 extents data pblock
 int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_arr) {
     // uint64_t inode_block_count = EXT4_INODE_SIZE(inode);
     if (inode->i_flags & EXT4_EXTENTS_FL) {
