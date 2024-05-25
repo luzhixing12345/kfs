@@ -23,10 +23,17 @@
 static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
     uint64_t inode_size = EXT4_INODE_SIZE(inode);
 
-    if (inode_size <= 60) {
+    // a small perf for symbolic links
+    // if the link destination fits in the inode, we copy it directly
+    if (inode_size <= EXT4_N_BLOCKS * sizeof(inode->i_block)) {
         /* Link destination fits in inode */
+        DEBUG("read link destination fits in inode");
         memcpy(buf, inode->i_block, inode_size);
     } else {
+        if (inode_size >= bufsize) {
+            // bufsize because we need to add a null terminator
+            DEBUG("inode size %lu >= bufsize %lu, need to truncate", inode_size, bufsize);
+        }
         uint64_t pblock = inode_get_data_pblock(inode, 0, NULL);
         char *block_data = malloc(EXT4_BLOCK_SIZE(sb));
         disk_read_block(pblock, (uint8_t *)block_data);
@@ -38,16 +45,24 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
     return inode_size + 1;
 }
 
-/* Check return values, bufer sizes and so on; strings are nasty... */
+/** Read the target of a symbolic link
+ *
+ * The buffer should be filled with a null terminated string.  The
+ * buffer size argument includes the space for the terminating
+ * null character.	If the linkname is too long to fit in the
+ * buffer, it should be truncated.	The return value should be 0
+ * for success.
+ */
 int op_readlink(const char *path, char *buf, size_t bufsize) {
     struct ext4_inode *inode;
-    DEBUG("readlink");
+    DEBUG("readlink %s with bufsize %d", path, bufsize);
 
     if (inode_get_by_path(path, &inode, NULL) < 0) {
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }
     if (!S_ISLNK(inode->i_mode)) {
+        DEBUG("inode %s is not a symlink", path);
         return -EINVAL;
     }
 

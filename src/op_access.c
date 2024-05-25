@@ -39,14 +39,14 @@ int op_access(const char *path, int mask) {
         return 0;
     }
 
-    if (uid == EXT4_INODE_UID(*inode)) {
+    if (uid == EXT4_INODE_UID(inode)) {
         if (inode->i_mode & S_IXUSR) {
             INFO("Permission granted");
             return 0;
         }
     }
 
-    if (gid == EXT4_INODE_GID(*inode)) {
+    if (gid == EXT4_INODE_GID(inode)) {
         if (inode->i_mode & S_IXGRP) {
             INFO("Permission granted");
             return 0;

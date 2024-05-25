@@ -7,6 +7,7 @@
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_dentry.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -24,6 +25,11 @@ extern struct dcache *dcache;
  * will be called instead.
  */
 int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    // the only difference between create and mkdir is that
+    //
+    // - mkdir need dentry_init() for . and ..
+    // - mkdir need parent inode.i_links_count++
+
     DEBUG("create path %s with mode %o", path, mode);
 
     // first find the parent directory of this path
@@ -44,56 +50,39 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
         ERR("parent inode has no dentry");
         return -ENOENT;
     }
-    char *name = strrchr(path, '/') + 1;
-    __le16 rec_len = ALIGN_TO_DENTRY(EXT4_DE_BASE_SIZE + strlen(name));
-    __le16 left_space = de->rec_len - DE_REAL_REC_LEN(de);
-    INFO("for new de %s: require space %u | left space %u", name, rec_len, left_space);
-    if (left_space < rec_len) {
+    // check if disk has space for a new inode
+    uint32_t dir_idx;
+    uint64_t dir_pblock_idx;
+    if (inode_bitmap_has_space(parent_idx, &dir_idx, &dir_pblock_idx) < 0) {
+        ERR("No space for new inode");
+        return -ENOSPC;
+    }
+
+    INFO("check ok!");
+    // create a new dentry, and write back to disk
+    char *dir_name = strrchr(path, '/') + 1;
+    if (dentry_has_enough_space(de, dir_name) < 0) {
         ERR("No space for new dentry");
         return -ENOSPC;
     }
-    INFO("space for new dentry is enough");
-    // find a valid inode_idx in GDT
-    uint32_t inode_idx = bitmap_inode_find(parent_idx);
-    if (inode_idx == 0) {
-        ERR("No free inode");
-        return -ENOSPC;
-    }
 
-    // find an empty data block
-    uint64_t pblock_idx = bitmap_pblock_find(inode_idx);
-    if (pblock_idx == U64_MAX) {
-        ERR("No free block");
-        return -ENOSPC;
-    }
-
-    INFO("new dentry %s: [inode:%u] [block_idx:%u]", name, inode_idx, pblock_idx);
-
-    // create a new dentry, and write back to disk
-    dentry_create(de, name, inode_idx, EXT4_FT_REG_FILE);
-    disk_write_block(dcache->pblock, dcache->buf);
-    INFO("write back new dentry(in parent inode) to disk");
+    dentry_create(de, dir_name, dir_idx, EXT4_FT_REG_FILE);
+    dcache_write_back();
 
     // for now, inode(parent) is not used any more, reuse it for the new created inode
     // create a new inode
-    inode_create(inode_idx, mode, pblock_idx, &inode);
+    inode_create(dir_idx, mode, dir_pblock_idx, &inode);
     INFO("create new inode");
 
     // update inode and data bitmap
-    bitmap_inode_set(inode_idx, 1);
-    bitmap_pblock_set(pblock_idx, 1);
+    bitmap_inode_set(dir_idx, 1);
+    bitmap_pblock_set(dir_pblock_idx, 1);
     // just set bitmap and not write back to disk here for performance
     // write back bitmap to disk when fs is destory
     INFO("set inode and data bitmap");
 
     // update gdt
-    gdt_update(pblock_idx);
-
-    dcache->inode_idx = inode_idx;
-    dcache->lblock = 0;
-    memset(dcache->buf, 0, BLOCK_SIZE);
-    disk_write_block(pblock_idx, dcache->buf);
-    INFO("write back new inode to disk");
+    gdt_update(dir_idx);
 
     return 0;
 }

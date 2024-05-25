@@ -259,8 +259,8 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     struct fuse_context *cntx = fuse_get_context();  //获取当前用户的上下文
     uid_t uid = cntx->uid;
     gid_t gid = cntx->gid;
-    uid_t i_uid = EXT4_INODE_UID(*inode);
-    gid_t i_gid = EXT4_INODE_GID(*inode);
+    uid_t i_uid = EXT4_INODE_UID(inode);
+    gid_t i_gid = EXT4_INODE_GID(inode);
     DEBUG("check inode & user permission on op mode %d", mode);
     DEBUG("inode uid %d, inode gid %d", i_uid, i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);
@@ -331,15 +331,15 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     time_t now = time(NULL);
     (*inode)->i_atime = (*inode)->i_ctime = (*inode)->i_mtime = now;
     struct fuse_context *cntx = fuse_get_context();
-    EXT4_INODE_SET_UID(**inode, cntx->uid);
-    EXT4_INODE_SET_GID(**inode, cntx->gid);
+    EXT4_INODE_SET_UID(*inode, cntx->uid);
+    EXT4_INODE_SET_GID(*inode, cntx->gid);
 
     // dir has 2 links and others have 1 link
     (*inode)->i_links_count = mode & S_IFDIR ? 2 : 1;
 
     // new created inode has 0 block and 0 size
-    EXT4_INODE_SET_BLOCKS(**inode, 0);
-    EXT4_INODE_SET_SIZE(**inode, 0);
+    EXT4_INODE_SET_BLOCKS(*inode, 0);
+    EXT4_INODE_SET_SIZE(*inode, 0);
 
     // enable ext4 extents flag
     (*inode)->i_flags |= EXT4_EXTENTS_FL;

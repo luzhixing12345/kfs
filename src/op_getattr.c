@@ -48,8 +48,8 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
         blocks = inode->i_blocks_lo + (((uint64_t)inode->osd2.linux2.l_i_blocks_high) << 32);
     }
     stbuf->st_blocks = blocks;
-    stbuf->st_uid = EXT4_INODE_UID(*inode);
-    stbuf->st_gid = EXT4_INODE_GID(*inode);
+    stbuf->st_uid = EXT4_INODE_UID(inode);
+    stbuf->st_gid = EXT4_INODE_GID(inode);
     stbuf->st_atime = inode->i_atime;
     stbuf->st_mtime = inode->i_mtime;
     stbuf->st_ctime = inode->i_ctime;

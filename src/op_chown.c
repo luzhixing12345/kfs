@@ -65,8 +65,8 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
         return 0;
     }
 
-    EXT4_INODE_SET_UID(*inode, uid);
-    EXT4_INODE_SET_GID(*inode, gid);
+    EXT4_INODE_SET_UID(inode, uid);
+    EXT4_INODE_SET_GID(inode, gid);
 
     // the inode do not need to be written back to disk for now
     // we just update it in cache(memory), and it will be written back to disk when:
