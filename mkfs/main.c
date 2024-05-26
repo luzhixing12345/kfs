@@ -85,9 +85,8 @@ int main(int argc, char **argv) {
     uint64_t img_size = disk_size();
     DEBUG("Image size: %llu", img_size);
 
-    // TODO: check if disk is big enough
     if (img_size < MKFS_EXT4_DISK_MIN_SIZE) {
-        fprintf(stderr, "Image size is too small, at least %d is required\n", MKFS_EXT4_DISK_MIN_SIZE);
+        fprintf(stderr, "Image size is too small, at least %d bit is required\n", MKFS_EXT4_DISK_MIN_SIZE);
         return EXIT_FAILURE;
     }
 
@@ -97,7 +96,10 @@ int main(int argc, char **argv) {
         INFO("Adjust image size to %llu", img_size);
     }
 
-    // TODO: what should be inside boot sector? seems x86 specific
+    // https://ext4.wiki.kernel.org/index.php/Ext4_Disk_Layout#Blocks
+    // For the special case of block group 0, the first 1024 bytes are unused, to allow for the installation
+    // of x86 boot sectors and other oddities. The superblock will start at offset 1024 bytes, whichever block
+    // that happens to be (usually 0).
     void *tmp_mem_area = calloc(1, BOOT_SECTOR_SIZE);
     disk_write(0, BOOT_SECTOR_SIZE, tmp_mem_area);
 
