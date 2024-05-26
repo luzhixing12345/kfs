@@ -53,10 +53,10 @@ struct ext4_group_desc {
 };
 
 // use bg_reserved2[0] to check if the group is clean(0) or dirty(1)
-#define EXT4_GDT_CLEAN                     0
-#define EXT4_GDT_DIRTY                     1
+#define EXT4_GDT_CLEAN                0
+#define EXT4_GDT_DIRTY                1
 
-#define EXT4_GDT_DIRTY_FLAG(group)         ((group)->bg_reserved2[0])
+#define EXT4_GDT_DIRTY_FLAG(group)    ((group)->bg_reserved2[0])
 #define EXT4_GDT_SET_CLEAN(group)     ((group)->bg_reserved2[0] = EXT4_GDT_CLEAN)
 #define EXT4_GDT_SET_DIRTY(group)     ((group)->bg_reserved2[0] = EXT4_GDT_DIRTY)
 

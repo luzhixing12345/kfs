@@ -7,7 +7,9 @@
  * more details.
  */
 
+#include <stdint.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #define _XOPEN_SOURCE 500
 #include <errno.h>
 #include <fcntl.h>
@@ -89,6 +91,14 @@ int disk_open(const char *path) {
     }
 
     return 0;
+}
+
+uint64_t disk_size() {
+    struct stat st;
+    if (fstat(disk_fd, &st) < 0) {
+        return 0;
+    }
+    return st.st_size;
 }
 
 int __disk_read(off_t where, size_t size, void *p, const char *func, int line) {

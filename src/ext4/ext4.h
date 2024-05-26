@@ -4,6 +4,7 @@
 #include "ext4_extents.h"
 #include "ext4_inode.h"
 #include "ext4_super.h"
+#include "../common.h"
 
 extern struct ext4_super_block sb;
 extern struct ext4_group_desc *gdt;

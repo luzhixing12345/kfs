@@ -31,6 +31,10 @@ SRC = $(call rwildcard, $(SRC_PATH), %.$(SRC_EXT))
 OBJ = $(SRC:.$(SRC_EXT)=.o)
 
 MKFS = mkfs.ext4
+MKFS_SRC_PATH = mkfs
+MKFS_SRC = $(call rwildcard, $(MKFS_SRC_PATH), %.$(SRC_EXT))
+MKFS_OBJ = $(MKFS_SRC:.$(SRC_EXT)=.o)
+
 DUMPFS = dumpe2fs
 
 OPTIM_LEVEL = 1
@@ -55,7 +59,7 @@ CFLAGS+=-g$(DEBUG_LEVEL)
 OPTIM_LEVEL = 0
 endif
 
-all: $(SRC_PATH)/$(TARGET)
+all: $(SRC_PATH)/$(TARGET) $(MKFS_SRC_PATH)/$(MKFS)
 
 debug: all
 
@@ -94,8 +98,15 @@ run:
 	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
 	@echo "log file save in: $(LOG_FILE)"
 
-mkfs:
-	gcc mkfs.c -o $(MKFS)
+mkfs: $(MKFS_SRC_PATH)/$(MKFS)
+
+MKFS_DEPENDS = $(SRC_PATH)/disk.o $(SRC_PATH)/logging.o
+
+$(MKFS_SRC_PATH)/$(MKFS): $(MKFS_OBJ) $(MKFS_DEPENDS)
+	$(CC) $^ $(LDFLAGS) -o $@
+
+$(MKFS_OBJ): $(MKFS_SRC)
+	$(CC) $(CFLAGS) -I$(SRC_PATH) -c $< -o $@
 
 dump:
 	$(DUMPFS) -f $(DISK_IMG)
@@ -107,6 +118,10 @@ test:
 
 clean:
 	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)
+
+mkfs_clean:
+	rm -f $(MKFS_OBJ) $(MKFS_SRC_PATH)/$(MKFS)
+
 release:
 	$(MAKE) -j4
 	mkdir $(RELEASE)

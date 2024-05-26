@@ -29,5 +29,6 @@ int __disk_write(off_t where, size_t size, void *p, const char *func, int line);
 
 int disk_ctx_create(struct disk_ctx *dctx, off_t where, size_t size, uint32_t len);
 int __disk_ctx_read(struct disk_ctx *dctx, size_t size, void *p, const char *func, int line);
+uint64_t disk_size();
 
 #endif
