@@ -17,7 +17,6 @@
 #define MAX_DIND_BLOCK          (MAX_IND_BLOCK + ADDRESSES_IN_DIND_BLOCK)
 #define MAX_TIND_BLOCK          (MAX_DIND_BLOCK + ADDRESSES_IN_TIND_BLOCK)
 
-#define ROOT_INODE_N            2  // root inode_idx
 #define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);

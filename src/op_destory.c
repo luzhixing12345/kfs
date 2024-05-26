@@ -23,11 +23,11 @@ void op_destory(void *data) {
     for (int i = 0; i < i_bitmap.group_num; i++) {
         if (i_bitmap.group[i].status == BITMAP_S_DIRTY) {
             INFO("write back dirty i_bitmap %d", i);
-            disk_write(i_bitmap.group[i].off, EXT4_INODES_PER_GROUP(sb) / 8, &i_bitmap.group[i].bitmap);
+            disk_write(i_bitmap.group[i].off, EXT4_INODES_PER_GROUP(sb) / 8, i_bitmap.group[i].bitmap);
         }
         if (d_bitmap.group[i].status == BITMAP_S_DIRTY) {
             INFO("write back dirty d_bitmap %d", i);
-            disk_write(d_bitmap.group[i].off, EXT4_BLOCKS_PER_GROUP(sb) / 8, &d_bitmap.group[i].bitmap);
+            disk_write(d_bitmap.group[i].off, EXT4_BLOCKS_PER_GROUP(sb) / 8, d_bitmap.group[i].bitmap);
         }
         free(i_bitmap.group[i].bitmap);
         free(d_bitmap.group[i].bitmap);

@@ -30,7 +30,9 @@ rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
 SRC = $(call rwildcard, $(SRC_PATH), %.$(SRC_EXT))
 OBJ = $(SRC:.$(SRC_EXT)=.o)
 
-MKFS = mkfs.ext4
+MKFS = mkfs
+# MKFS = mkfs.ext4
+
 MKFS_SRC_PATH = mkfs
 MKFS_SRC = $(call rwildcard, $(MKFS_SRC_PATH), %.$(SRC_EXT))
 MKFS_OBJ = $(MKFS_SRC:.$(SRC_EXT)=.o)
@@ -91,12 +93,14 @@ DISK_IMG = disk.img
 
 disk:
 	dd if=/dev/zero of=$(DISK_IMG) bs=1M count=1000
-	$(MKFS) $(DISK_IMG)
-	sudo ./script/init.sh
+	$(MKFS_SRC_PATH)/$(MKFS) $(DISK_IMG)
 
 run:
-	$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
-	@echo "log file save in: $(LOG_FILE)"
+	@$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -o logfile=$(LOG_FILE)
+	@echo "mount fs in $(TMP_PATH), log file save in: $(LOG_FILE)"
+
+debug_run:
+	@$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
 
 mkfs: $(MKFS_SRC_PATH)/$(MKFS)
 

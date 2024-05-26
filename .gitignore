@@ -65,4 +65,4 @@ example/
 /a*
 *.img
 *.log
-mkfs/mkfs.ext4
+mkfs/mkfs

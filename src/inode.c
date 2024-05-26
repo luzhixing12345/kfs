@@ -363,7 +363,8 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
 
     // new created inode has 0 block and 0 size
     EXT4_INODE_SET_BLOCKS(*inode, 0);
-    EXT4_INODE_SET_SIZE(*inode, 0);
+    uint64_t inode_size = mode & S_IFDIR ? BLOCK_SIZE : 0;
+    EXT4_INODE_SET_SIZE(*inode, inode_size);
 
     // enable ext4 extents flag
     (*inode)->i_flags |= EXT4_EXTENTS_FL;

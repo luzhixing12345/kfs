@@ -40,7 +40,7 @@ struct dcache *dcache;
 struct icache *icache;
 
 int cache_init() {
-    dcache_init_root(ROOT_INODE_N);
+    dcache_init_root(EXT4_ROOT_INO);
     dcache = malloc(sizeof(struct dcache) + BLOCK_SIZE);
     dcache->lblock = -1;
     dcache->pblock = -1;

@@ -1,10 +1,10 @@
 
+#include "../common.h"
 #include "ext4_basic.h"
 #include "ext4_dentry.h"
 #include "ext4_extents.h"
 #include "ext4_inode.h"
 #include "ext4_super.h"
-#include "../common.h"
 
 extern struct ext4_super_block sb;
 extern struct ext4_group_desc *gdt;
@@ -14,6 +14,16 @@ extern struct bitmap d_bitmap;
 #define BOOT_SECTOR_SIZE        0x400   // boot sector
 #define EXT4_S_MAGIC            0xEF53  // ext4 magic number
 
+// https://stackoverflow.com/a/2109363/17869889
+#define EXT4_BAD_INO            1 /* Bad blocks inode */
+#define EXT4_ROOT_INO           2 /* Root inode */
+#define EXT4_USR_QUOTA_INO      3 /* User quota inode */
+#define EXT4_GRP_QUOTA_INO      4 /* Group quota inode */
+#define EXT4_BOOT_LOADER_INO    5 /* Boot loader inode */
+#define EXT4_UNDEL_DIR_INO      6 /* Undelete directory inode */
+#define EXT4_RESIZE_INO         7 /* Reserved group descriptors inode */
+#define EXT4_JOURNAL_INO        8 /* Journal inode */
+
 #define BLOCK_SIZE              (EXT4_BLOCK_SIZE(sb))
 #define BLOCKS2BYTES(__blks)    (((uint64_t)(__blks)) * BLOCK_SIZE)
 #define BYTES2BLOCKS(__bytes)   ((__bytes) / BLOCK_SIZE + ((__bytes) % BLOCK_SIZE ? 1 : 0))
@@ -21,14 +31,14 @@ extern struct bitmap d_bitmap;
 #define MALLOC_BLOCKS(__blks)   (malloc(BLOCKS2BYTES(__blks)))
 #define ALIGN_TO_BLOCKSIZE(__n) (ALIGN_TO(__n, BLOCK_SIZE))
 #define BIT0(bitmap, __n)       (!((bitmap)[(__n) / 8] & (1 << ((__n) % 8))))
-#define SET_BIT(bitmap_ptr, __n, __v)                        \
-    do {                                                     \
-        char *byte_ptr = (char *)(bitmap_ptr) + ((__n) / 8); \
-        if ((__v)) {                                         \
-            *byte_ptr |= (1 << ((__n) % 8));                 \
-        } else {                                             \
-            *byte_ptr &= ~(1 << ((__n) % 8));                \
-        }                                                    \
+#define SET_BIT(bitmap_ptr, __n, __v)                              \
+    do {                                                           \
+        uint8_t *byte_ptr = (uint8_t *)(bitmap_ptr) + ((__n) / 8); \
+        if ((__v)) {                                               \
+            *byte_ptr |= (1 << ((__n) % 8));                       \
+        } else {                                                   \
+            *byte_ptr &= ~(1 << ((__n) % 8));                      \
+        }                                                          \
     } while (0)
 /*
  * Macro-instructions used to manage group descriptors
