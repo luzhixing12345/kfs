@@ -47,6 +47,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
         // only one block to write
         ret = disk_write(BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
     } else {
+        // FIXME
         ASSERT(0);
     }
 

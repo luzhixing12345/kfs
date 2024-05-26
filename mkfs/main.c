@@ -156,9 +156,17 @@ int main(int argc, char **argv) {
         gdt[i].bg_inode_bitmap_hi = (i_bitmap_start + i) >> 32;
         gdt[i].bg_inode_table_lo = (inode_table_start + i * inode_table_len) & MASK_32;
         gdt[i].bg_inode_table_hi = (inode_table_start + i * inode_table_len) >> 32;
-        gdt[i].bg_free_blocks_count_lo = MKFS_EXT4_GROUP_BLOCK_CNT & MASK_32;
-        gdt[i].bg_free_blocks_count_hi = MKFS_EXT4_GROUP_BLOCK_CNT >> 32;
-        gdt[i].bg_free_inodes_count_lo = sb.s_inodes_per_group & MASK_32;
+
+        uint64_t free_blocks_count = MKFS_EXT4_GROUP_BLOCK_CNT;
+        uint64_t free_inode_count = sb.s_inodes_per_group;
+        // calculate left free block count
+        if (i == group_count - 1) {
+            free_blocks_count = block_count - (group_count - 1) * MKFS_EXT4_GROUP_BLOCK_CNT;
+            free_inode_count = inode_count - (group_count - 1) * sb.s_inodes_per_group;
+        }
+        gdt[i].bg_free_blocks_count_lo = free_blocks_count & MASK_32;
+        gdt[i].bg_free_blocks_count_hi = free_blocks_count >> 32;
+        gdt[i].bg_free_inodes_count_lo = free_inode_count & MASK_32;
         gdt[i].bg_free_inodes_count_hi = 0;  // sb.s_inodes_per_group is uint32_t so no need to shift?
         gdt[i].bg_used_dirs_count_lo = 0;
         gdt[i].bg_used_dirs_count_hi = 0;
@@ -191,7 +199,6 @@ int main(int argc, char **argv) {
     memset(tmp_mem_area, 0xff, alloced_block_cnt / 8);
     if (alloced_block_cnt % 8 != 0) {
         ((uint8_t *)tmp_mem_area)[alloced_block_cnt / 8] |= (1 << (alloced_block_cnt % 8)) - 1;
-        DEBUG("%d", ((uint8_t *)tmp_mem_area)[alloced_block_cnt / 8]);
     }
 
     DEBUG("alloc %lu data blocks", alloced_block_cnt);
@@ -206,7 +213,9 @@ int main(int argc, char **argv) {
     inode_create(EXT4_ROOT_INO, S_IFDIR | mode, data_block_start, inode);
 
     INFO("write back root inode to disk");
-    disk_write(BLOCKS2BYTES(inode_table_start) + MKFS_EXT4_INODE_SIZE, MKFS_EXT4_INODE_SIZE, tmp_mem_area);
+    disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_ROOT_INO - 1) * MKFS_EXT4_INODE_SIZE,
+               MKFS_EXT4_INODE_SIZE,
+               tmp_mem_area);
 
     // create dentry
     INFO("create root dentry");
