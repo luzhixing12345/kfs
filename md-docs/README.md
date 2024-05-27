@@ -56,10 +56,14 @@ make debug_run
 
 - [ ] ext4 日志
 - [ ] 更好的 inode/data bitmap 选择
+- [ ] 并发场景下会出现问题
+- [ ] 超大文件的读写有问题
 
 ## 文档
 
-项目文档见 `md-docs/`, 在线阅读: [kfs document](https://luzhixing12345.github.io/kfs/)
+项目文档见 [kfs 项目文档](./report.md)
+
+项目技术文档见 `md-docs/`, 在线阅读: [kfs document](https://luzhixing12345.github.io/kfs/)
 
 ## 参考
 
