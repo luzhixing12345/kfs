@@ -34,7 +34,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     }
 
     // check permissions
-    if (inode_check_permission(inode, READ) && inode_check_permission(inode, WRITE)) {
+    if (inode_check_permission(inode, READ) < 0 || inode_check_permission(inode, WRITE) < 0) {
         ERR("Permission denied");
         return -EACCES;
     }
@@ -45,14 +45,15 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
 
     if (start_lblock == end_lblock) {
         // only one block to write
-        ret = disk_write(BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
+        ret = disk_write(
+            BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
     } else {
         // FIXME
         ASSERT(0);
     }
 
     // uint64_t file_size = EXT4_INODE_SIZE(inode);
-    EXT4_INODE_SET_SIZE(inode, size); // FIXME
+    EXT4_INODE_SET_SIZE(inode, size);  // FIXME
     ICACHE_DIRTY(inode);
     DEBUG("write done");
 

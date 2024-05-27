@@ -30,7 +30,7 @@ int op_open(const char *path, struct fuse_file_info *fi) {
     }
 
     access_mode_t mode = fi->flags & O_ACCMODE;
-    // check if user has read permission
+    // check if user has permission
     if (inode_check_permission(inode, mode) < 0) {
         DEBUG("fail to check permission for inode %d", inode_idx);
         return -EACCES;

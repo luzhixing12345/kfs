@@ -62,10 +62,6 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     return 0;
 }
 
-int dentry_init(uint32_t parent_idx, uint32_t inode_idx) {
-    return 0;
-}
-
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <disk>\n", argv[0]);
@@ -108,6 +104,8 @@ int main(int argc, char **argv) {
     uint64_t block_count = img_size / MKFS_EXT4_BLOCK_SIZE;
     uint64_t group_count = (block_count + MKFS_EXT4_GROUP_BLOCK_CNT - 1) / MKFS_EXT4_GROUP_BLOCK_CNT;
     uint64_t inode_count = block_count * MKFS_EXT4_BLOCK_SIZE / MKFS_EXT4_INODE_RATIO;
+    // each group inode number should be less than MKFS_EXT4_GROUP_BLOCK_CNT
+    ASSERT((inode_count / group_count) <= MKFS_EXT4_GROUP_BLOCK_CNT);
     INFO("block_count: %llu, group_count: %llu, inode_count: %llu", block_count, group_count, inode_count);
 
     memset(&sb, 0, sizeof(struct ext4_super_block));
@@ -165,6 +163,9 @@ int main(int argc, char **argv) {
         if (i == group_count - 1) {
             free_blocks_count = block_count - (group_count - 1) * MKFS_EXT4_GROUP_BLOCK_CNT;
             free_inode_count = inode_count - (group_count - 1) * sb.s_inodes_per_group;
+        } else if (i == 0) {
+            free_blocks_count--;  // root data block
+            free_inode_count--;   // root inode
         }
         gdt[i].bg_free_blocks_count_lo = free_blocks_count & MASK_32;
         gdt[i].bg_free_blocks_count_hi = free_blocks_count >> 32;
@@ -182,6 +183,7 @@ int main(int argc, char **argv) {
     }
     // only write back group descriptors in the first group
     INFO("filling group descriptors");
+    gdt[0].bg_used_dirs_count_lo += 1;  // root '/'
     disk_write(bg_off, group_count * sizeof(struct ext4_group_desc), gdt);
 
     // init fs

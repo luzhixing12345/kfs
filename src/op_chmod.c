@@ -32,7 +32,7 @@ int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
     }
 
     // check permission
-    if (inode_check_permission(inode, RDWR)) {
+    if (inode_check_permission(inode, RDWR) < 0) {
         return -EACCES;
     }
 

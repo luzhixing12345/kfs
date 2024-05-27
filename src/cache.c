@@ -234,7 +234,9 @@ struct ext4_inode *icache_lru_replace(uint32_t inode_idx, int read_from_disk) {
  * @brief insert a new inode into icache (LRU if exchange)
  *
  * @param inode_idx
- * @return struct ext4_inode *
+ * @param read_from_disk if false, only register a new inode in i_cache instead of load from disk
+    useful when inode_create() is called
+ * @return struct ext4_inode*
  */
 struct ext4_inode *icache_insert(uint32_t inode_idx, int read_from_disk) {
     if (icache->count == ICACHE_MAX_COUNT) {

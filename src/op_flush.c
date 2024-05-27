@@ -26,6 +26,8 @@ int op_flush(const char *path, struct fuse_file_info *fi) {
         INFO("write back dirty inode %d", inode_idx);
     }
 
+    // TODO: flush inode data block to disk
+
     DEBUG("finish flush");
     return 0;
 }
