@@ -29,8 +29,6 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
 
     /* Skip to the right extent entry */
     for (i = 0; i < n_ee; i++) {
-        ASSERT(ee[i].ee_start_hi == 0);
-
         // Check if the block is in this extent
         if (ee[i].ee_block + ee[i].ee_len > lblock) {
             DEBUG("Block found in extent [%d]", i);
@@ -50,7 +48,7 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
         return 0;
     } else {
         DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
-        return ee[block_ext_index].ee_start_lo + block_ext_offset;
+        return EXT4_EXT_PADDR(ee[block_ext_index]) + block_ext_offset;
     }
 }
 
@@ -95,8 +93,6 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
         struct ext4_extent_idx *recurse_ei = NULL;
 
         for (int i = 0; i < eh->eh_entries; i++) {
-            ASSERT(ei_array[i].ei_leaf_hi == 0);
-
             if (ei_array[i].ei_block > lblock) {
                 break;
             }

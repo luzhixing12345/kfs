@@ -358,8 +358,7 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
     ee->ee_block = 0;
     ee->ee_len = 1;
-    ee->ee_start_hi = (pblock >> 32) & MASK_16;
-    ee->ee_start_lo = (pblock & MASK_32);
+    EXT4_EXT_SET_PADDR(ee, pblock);
     INFO("hi[%u] lo[%u]", ee->ee_start_hi, ee->ee_start_lo);
 
     // set other 3 ext extents to 0

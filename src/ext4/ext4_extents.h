@@ -39,7 +39,7 @@ struct ext4_extent {
 
 #define EXT4_EXT_PADDR(ext) ((((uint64_t)(ext).ee_start_hi) << 32) | (ext).ee_start_lo)
 #define EXT4_EXT_SET_PADDR(ext, addr) \
-    ((ext).ee_start_hi = ((addr) >> 32) & MASK_16, (ext).ee_start_lo = (addr & MASK_32))
+    ((ext)->ee_start_hi = ((addr) >> 32) & MASK_16, (ext)->ee_start_lo = (addr & MASK_32))
 
 /*
  * This is index on-disk structure.
