@@ -9,6 +9,7 @@
 
 #include "cache.h"
 
+#include <asm-generic/errno-base.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,9 +19,6 @@
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
-
-#define DCACHE_ENTRY_CALLOC() calloc(1, sizeof(struct dcache_entry))
-#define DCACHE_ENTRY_LIFE     8
 
 /* Locking for the dcache is tricky.  What we try to do is to keep insertions
  * and lookups threadsafe by atomic updates.  That keeps the tree safe, but
@@ -35,12 +33,12 @@
  * so we just take it from whoever calls us.
  * All this hassle is basically to avoid copying around strings. */
 
-struct dcache_entry root;
+struct decache_entry *root;
 struct dcache *dcache;
 struct icache *icache;
 
 int cache_init() {
-    dcache_init_root(EXT4_ROOT_INO);
+    decache_init_root(EXT4_ROOT_INO);
     dcache = malloc(sizeof(struct dcache) + BLOCK_SIZE);
     dcache->lblock = -1;
     dcache->pblock = -1;
@@ -69,7 +67,7 @@ void dcache_update(struct ext4_inode *inode, uint32_t lblock) {
  */
 void dcache_init(struct ext4_inode *inode, uint32_t inode_idx) {
     ASSERT(inode_idx != 0);
-    ICACHE_UPDATE_CNT(inode);  // update lru count
+    ICACHE_LRU_INC(inode);  // update lru count
 
     // if already initialized
     if (dcache->inode_idx == inode_idx && dcache->lblock == 0) {
@@ -82,8 +80,14 @@ void dcache_init(struct ext4_inode *inode, uint32_t inode_idx) {
     dcache_update(inode, 0);
 }
 
-int dcache_init_root(uint32_t n) {
-    if (root.inode_idx) {
+int dcache_write_back() {
+    INFO("write back data to disk");
+    return disk_write_block(dcache->pblock, dcache->buf);
+}
+
+int decache_init_root(uint32_t n) {
+    root = calloc(1, sizeof(struct decache_entry));
+    if (root->inode_idx) {
         WARNING("Reinitializing dcache not allowed.  Skipped.");
         return -1;
     }
@@ -91,15 +95,12 @@ int dcache_init_root(uint32_t n) {
     /* Root entry doesn't need most of the fields.  Namely, it only uses the
      * inode field and the childs pointer. */
     INFO("Initializing root dcache entry");
-    root.inode_idx = n;
-    root.childs = NULL;
-
+    root->inode_idx = n;
+    root->parent = NULL;
+    root->childs = NULL;  // root entry has no childs for now
+    root->next = NULL;    // root is the root
+    root->count = 0;
     return 0;
-}
-
-int dcache_write_back() {
-    INFO("write back data to disk");
-    return disk_write_block(dcache->pblock, dcache->buf);
 }
 
 /* Inserts a node as a childs of a given parent.  The parent is updated to
@@ -112,66 +113,151 @@ int dcache_write_back() {
  * .->[1]->[2]-.       .->[1]->[3]->[2]-.
  * `-----------´       `----------------´
  */
-struct dcache_entry *decache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n) {
+struct decache_entry *decache_insert(struct decache_entry *parent, const char *name, int namelen, uint32_t n) {
     /* TODO: Deal with names that exceed the allocated size */
     if (namelen + 1 > DCACHE_ENTRY_NAME_LEN)
         return NULL;
 
     if (parent == NULL) {
-        parent = &root;
+        parent = root;
         ASSERT(parent->inode_idx);
     }
 
-    struct dcache_entry *new_entry = DCACHE_ENTRY_CALLOC();
+    struct decache_entry *new_entry = calloc(1, sizeof(struct decache_entry));
     strncpy(new_entry->name, name, namelen);
     new_entry->name[namelen] = 0;
     new_entry->inode_idx = n;
+    new_entry->parent = parent;
 
-    if (!parent->childs) {
+    if (parent->count == 0) {
         // add as first child
         DEBUG("parent has no childs, add as first child %s", new_entry->name);
-        new_entry->siblings = new_entry;
         parent->childs = new_entry;
+        new_entry->next = NULL;
+        new_entry->prev = NULL;
+        parent->count = 1;
+        parent->last_child = new_entry;  // first child is the last one
     } else {
-        DEBUG("parent has childs %s", parent->childs->name);
-        new_entry->siblings = parent->childs->siblings;
-        parent->childs->siblings = new_entry;
+        // check if parent has enough space
+        if (parent->count == DCACHE_MAX_CHILDREN) {
+            WARNING("parent has no space for new child %s", new_entry->name);
+            // find and remove the last child
+            struct decache_entry *iter = parent->last_child;
+            iter->prev->next = NULL;
+            parent->last_child = iter->prev;
+            parent->count--;
+            INFO("free last child %s", iter->name);
+            free(iter);
+        }
+        // new dentry is inserted as the first child
+        // because it may be used very soon
+        DEBUG("insert as the first child %s", new_entry->name);
+        new_entry->next = parent->childs;
+        new_entry->prev = NULL;
+        parent->childs->prev = new_entry;
         parent->childs = new_entry;
+        parent->count++;
     }
 
     return new_entry;
 }
 
+struct decache_entry *decache_find(const char **path) {
+    struct decache_entry *next = NULL;
+    struct decache_entry *ret;
+
+    do {
+        *path = skip_trailing_backslash(*path);
+        uint8_t path_len = get_path_token_len(*path);
+        ret = next;
+
+        if (path_len == 0) {
+            return ret;
+        }
+
+        next = decache_walk(ret, *path, path_len);
+        if (next) {
+            INFO("Found entry in cache: %s", next->name);
+            *path += path_len;
+        }
+    } while (next != NULL);
+
+    return ret;
+}
+
 // Lookup a cache entry for a given file name.  Return value is a struct pointer
 // that can be used to both obtain the inode number and insert further child
 // entries.
-struct dcache_entry *decache_lookup(struct dcache_entry *parent, const char *name, int namelen) {
+struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, int namelen) {
     /* TODO: Prune entries by using the LRU counter */
     if (parent == NULL) {
-        parent = &root;
+        parent = root;
     }
 
     if (!parent->childs) {
+        ASSERT(parent->count == 0);
         DEBUG("directory has no cached entry");
         return NULL;
     }
 
-    DEBUG("Looking up dcache entry %s:%d", name, namelen);
-    /* Iterate the list of siblings to see if there is any match */
-    struct dcache_entry *iter = parent->childs;
+    DEBUG("Looking up decache entry %s:%d", name, namelen);
+    /* Iterate the list of childs to see if there is any match */
+    struct decache_entry *iter = parent->childs;
     do {
-        DEBUG("get dcache entry %s", iter->name);
+        DEBUG("get decache entry %s", iter->name);
         if (strncmp(iter->name, name, namelen) == 0 && iter->name[namelen] == 0) {
-            INFO("match dcache entry %s == %s:%d", iter->name, name, namelen);
+            INFO("match decache entry %s == %s:%d", iter->name, name, namelen);
             parent->childs = iter;
+
             return iter;
         }
+        iter = iter->next;
+    } while (iter != NULL);
 
-        iter = iter->siblings;
-    } while (iter != parent->childs);
-
-    DEBUG("fail to get cached entry %s", name);
+    DEBUG("fail to get decached entry %s", name);
     return NULL;
+}
+
+int decache_delete(const char *path) {
+    const char *tmp = strdup(path);
+    struct decache_entry *entry = decache_find(&tmp);
+    ASSERT(entry);  // must exist
+    struct decache_entry *parent = entry->parent;
+    ASSERT(parent->count != 0);
+    parent->count--;
+    if (parent->count == 0) {
+        // no child
+        ASSERT(parent->childs);
+        free(entry);
+        parent->childs = NULL;
+        parent->last_child = NULL;
+        return 0;
+    }
+    if (entry->prev == NULL) {
+        // the first child
+        entry->next->prev = NULL;
+        parent->childs = entry->next;
+    } else if (entry->next == NULL) {
+        // the last child
+        entry->prev->next = NULL;
+        parent->last_child = entry->prev;
+    }
+    INFO("free decache entry %s", entry->name);
+    free(entry);
+    free((void *)tmp);
+    return 0;
+}
+
+void decache_free(struct decache_entry *entry) {
+    if (!entry) {
+        return;
+    }
+    struct decache_entry *iter = entry->childs;
+    for (int i = 0; i < entry->count; i++) {
+        decache_free(iter->next);
+        decache_free(iter);
+    }
+    free(entry);
 }
 
 /**

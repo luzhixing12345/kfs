@@ -67,6 +67,6 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
     stbuf->st_ctime = inode->i_ctime;
     stbuf->st_blksize = BLOCK_SIZE;
 
-    ICACHE_UPDATE_CNT(inode);
+    ICACHE_LRU_INC(inode);
     return 0;
 }

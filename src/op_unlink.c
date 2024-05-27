@@ -51,6 +51,9 @@ int op_unlink(const char *path) {
         inode_get_all_pblocks(inode, &p_arr);
         bitmap_pblock_free(&p_arr);
 
+        INFO("delete inode %s[%d] decache entry", name, inode_idx);
+        decache_delete(path);  // delete from decache
+
         // write back dirty inode
         if (ICACHE_IS_DIRTY(inode)) {
             INFO("write back dirty inode %d", inode_idx);

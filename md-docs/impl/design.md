@@ -138,7 +138,7 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     }
 
     // update lru count of the inode
-    ICACHE_UPDATE_CNT(*inode);
+    ICACHE_LRU_INC(*inode);
     return 0;
 }
 ```

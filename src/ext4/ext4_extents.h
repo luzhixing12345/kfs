@@ -36,6 +36,11 @@ struct ext4_extent {
     __le16 ee_start_hi; /* Upper 16-bits of the block number to which this extent points. */
     __le32 ee_start_lo; /* Lower 32-bits of the block number to which this extent points. */
 };
+
+#define EXT4_EXT_PADDR(ext) ((((uint64_t)(ext).ee_start_hi) << 32) | (ext).ee_start_lo)
+#define EXT4_EXT_SET_PADDR(ext, addr) \
+    ((ext).ee_start_hi = ((addr) >> 32) & MASK_16, (ext).ee_start_lo = (addr & MASK_32))
+
 /*
  * This is index on-disk structure.
  * It's used at all the levels except the bottom.

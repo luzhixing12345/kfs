@@ -127,6 +127,7 @@ int bitmap_pblock_free(struct pblock_arr *p_arr) {
     for (uint16_t i = 0; i < p_arr->len; i++) {
         range = &p_arr->arr[i];
         for (uint16_t j = 0; j < range->len; j++) {
+            INFO("free pblock %u", range->pblock + j);
             bitmap_pblock_set(range->pblock + j, 0);
         }
     }

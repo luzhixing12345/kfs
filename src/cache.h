@@ -8,24 +8,32 @@
 #include "ext4/ext4.h"
 #include "ext4/ext4_inode.h"
 
-struct dcache_entry;
-struct dcache_entry *decache_insert(struct dcache_entry *parent, const char *name, int namelen, uint32_t n);
-struct dcache_entry *decache_lookup(struct dcache_entry *parent, const char *name, int namelen);
-int dcache_init_root(uint32_t n);
+struct decache_entry;
+struct decache_entry *decache_insert(struct decache_entry *parent, const char *name, int namelen, uint32_t n);
+struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, int namelen);
+int decache_init_root(uint32_t n);
+void decache_free(struct decache_entry *entry);
+struct decache_entry *decache_find(const char **path);
+int decache_delete(const char *path);
+
 
 #define DCACHE_ENTRY_NAME_LEN NAME_MAX
 
 /* This struct declares a node of a k-tree.  Every node has a pointer to one of
  * the childs and a pointer (in a circular list fashion) to its siblings. */
 
-struct dcache_entry {
-    struct dcache_entry *childs;
-    struct dcache_entry *siblings;
+struct decache_entry {
+    struct decache_entry *parent;
+    struct decache_entry *childs;
+    struct decache_entry *last_child;
+    struct decache_entry *prev;
+    struct decache_entry *next;
     uint32_t inode_idx;
-    uint16_t lru_count;
-    uint8_t user_count;
-    char name[DCACHE_ENTRY_NAME_LEN];
+    uint32_t count;
+    char name[DCACHE_ENTRY_NAME_LEN + 1];
 };
+
+#define DCACHE_MAX_CHILDREN 20  // each directory can have at most 20 children
 
 // inode directory cache
 struct dcache {
@@ -34,7 +42,6 @@ struct dcache {
     uint32_t pblock;     // current physical block id, for quick write back
     uint8_t buf[];       // buffer
 };
-
 
 int cache_init();
 
@@ -63,14 +70,18 @@ struct icache_entry {
     int status;               // empty, valid, dirty
 };
 
-#define ICACHE_S_INVAL           0
-#define ICACHE_S_VALID           1
-#define ICACHE_S_DIRTY           2
+#define ICACHE_S_INVAL 0
+#define ICACHE_S_VALID 1
+#define ICACHE_S_DIRTY 2
 
-#define ICACHE_UPDATE_CNT(inode) (((struct icache_entry *)(inode))->lru_count++)
-#define ICACHE_INVAL(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
-#define ICACHE_DIRTY(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
-#define ICACHE_IS_DIRTY(inode)      (((struct icache_entry *)(inode))->status == ICACHE_S_DIRTY)
+#define ICACHE_LRU_INC(inode)                                       \
+    do {                                                            \
+        if (((struct icache_entry *)inode)->lru_count < UINT32_MAX) \
+            (((struct icache_entry *)inode)->lru_count++);          \
+    } while (0)
+#define ICACHE_INVAL(inode)    (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
+#define ICACHE_DIRTY(inode)    (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
+#define ICACHE_IS_DIRTY(inode) (((struct icache_entry *)(inode))->status == ICACHE_S_DIRTY)
 
 /**
  * @brief find inode in icache

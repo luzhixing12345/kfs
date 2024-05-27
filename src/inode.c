@@ -30,11 +30,11 @@
 #include "logging.h"
 
 extern struct ext4_super_block sb;
-extern struct dcache_entry root;
+extern struct decache_entry *root;
 extern struct ext4_group_desc *gdt;
 extern struct dcache *dcache;
 
-static const char *skip_trailing_backslash(const char *path) {
+const char *skip_trailing_backslash(const char *path) {
     while (IS_PATH_SEPARATOR(*path)) path++;
     return path;
 }
@@ -117,7 +117,7 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
             pblock_arr->len = eh->eh_entries;
             pblock_arr->arr = malloc(pblock_arr->len * sizeof(struct pblock_range));
             for (int i = 0; i < pblock_arr->len; i++) {
-                pblock_arr->arr[i].pblock = ee[i].ee_block;
+                pblock_arr->arr[i].pblock = EXT4_EXT_PADDR(ee[i]);
                 pblock_arr->arr[i].len = ee[i].ee_len;
             }
             INFO("get all pblocks done");
@@ -149,39 +149,16 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     }
 
     // update lru count of the inode
-    ICACHE_UPDATE_CNT(*inode);
+    ICACHE_LRU_INC(*inode);
     return 0;
 }
 
-static uint8_t get_path_token_len(const char *path) {
+uint8_t get_path_token_len(const char *path) {
     uint8_t len = 0;
     while (path[len] != '/' && path[len]) {
         len++;
     }
     return len;
-}
-
-struct dcache_entry *get_cached_inode_idx(const char **path) {
-    struct dcache_entry *next = NULL;
-    struct dcache_entry *ret;
-
-    do {
-        *path = skip_trailing_backslash(*path);
-        uint8_t path_len = get_path_token_len(*path);
-        ret = next;
-
-        if (path_len == 0) {
-            return ret;
-        }
-
-        next = decache_lookup(ret, *path, path_len);
-        if (next) {
-            INFO("Found entry in cache: %s", next->name);
-            *path += path_len;
-        }
-    } while (next != NULL);
-
-    return ret;
 }
 
 uint32_t inode_get_idx_by_path(const char *path) {
@@ -191,8 +168,8 @@ uint32_t inode_get_idx_by_path(const char *path) {
     DEBUG("Looking up: %s", path);
 
     // first try to find in dcache
-    struct dcache_entry *dc_entry = get_cached_inode_idx(&path);
-    inode_idx = dc_entry ? dc_entry->inode_idx : root.inode_idx;
+    struct decache_entry *dc_entry = decache_find(&path);
+    inode_idx = dc_entry ? dc_entry->inode_idx : root->inode_idx;
     DEBUG("Found inode_idx %d", inode_idx);
 
     do {
@@ -403,7 +380,7 @@ int inode_bitmap_has_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *p
 
     // find an empty data block
     *pblock = bitmap_pblock_find(*inode_idx);
-    if (*pblock == U64_MAX) {
+    if (*pblock == UINT64_MAX) {
         ERR("No free block");
         return -ENOSPC;
     }

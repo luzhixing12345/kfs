@@ -52,6 +52,7 @@ int op_rmdir(const char *path) {
         return -ENOENT;
     }
     dcache_write_back();
+    decache_delete(path);
 
     DEBUG("rmdir %s done", path);
     return 0;

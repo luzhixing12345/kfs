@@ -28,7 +28,7 @@ int op_link(const char *from, const char *to) {
     }
 
     // hard link
-    if (inode->i_links_count != U16_MAX) {
+    if (inode->i_links_count != UINT16_MAX) {
         inode->i_links_count++;
         ICACHE_DIRTY(inode);
         DEBUG("inode[%u] links %u", inode_idx, inode->i_links_count);
