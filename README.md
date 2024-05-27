@@ -59,7 +59,7 @@ make debug_run
 
 ## 文档
 
-项目文档见 `md-docs/`, 在线阅读: 
+项目文档见 `md-docs/`, 在线阅读: [kfs document](https://luzhixing12345.github.io/kfs/)
 
 ## 参考
 

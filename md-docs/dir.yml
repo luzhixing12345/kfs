@@ -7,12 +7,14 @@ fs:
 - inode: 4
 - directory: 5
 - disk-layout: 6
-- mount: 7
-- performance: 8
+- ext4: 7
+- fuse: 8
+- permission: 9
+- mount: 10
+- performance: 11
 impl:
-- fuse: 1
-- ext4: 4
-- permission: 5
+- mkfs: 1
+- design: 2
 device:
 - io: 1
 - disk: 2
