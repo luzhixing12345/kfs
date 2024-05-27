@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
     INFO("block_count: %llu, group_count: %llu, inode_count: %llu", block_count, group_count, inode_count);
 
     memset(&sb, 0, sizeof(struct ext4_super_block));
+    sb.s_inodes_count = inode_count;
     sb.s_magic = EXT4_S_MAGIC;
     sb.s_log_block_size = MKFS_EXT4_LOG_BLOCK_SIZE;
     sb.s_blocks_count_hi = block_count >> 32;
