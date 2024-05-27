@@ -220,6 +220,7 @@ struct decache_entry *decache_walk(struct decache_entry *parent, const char *nam
 
 int decache_delete(const char *path) {
     const char *tmp = strdup(path);
+    void *p = (void *)tmp;
     struct decache_entry *entry = decache_find(&tmp);
     ASSERT(entry);  // must exist
     struct decache_entry *parent = entry->parent;
@@ -231,6 +232,7 @@ int decache_delete(const char *path) {
         free(entry);
         parent->childs = NULL;
         parent->last_child = NULL;
+        free(p);
         return 0;
     }
     if (entry->prev == NULL) {
@@ -244,7 +246,7 @@ int decache_delete(const char *path) {
     }
     INFO("free decache entry %s", entry->name);
     free(entry);
-    free((void *)tmp);
+    free(p);
     return 0;
 }
 
