@@ -170,7 +170,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
     // first try to find in dcache
     struct decache_entry *dc_entry = decache_find(&path);
     inode_idx = dc_entry ? dc_entry->inode_idx : root->inode_idx;
-    DEBUG("Found inode_idx %d", inode_idx);
+    DEBUG("Found inode_idx %d, path = %s", inode_idx, path);
 
     do {
         uint64_t offset = 0;

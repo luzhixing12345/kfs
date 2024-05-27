@@ -100,6 +100,7 @@ int decache_init_root(uint32_t n) {
     root->childs = NULL;  // root entry has no childs for now
     root->next = NULL;    // root is the root
     root->count = 0;
+    strcpy(root->name, "/");
     return 0;
 }
 
@@ -157,6 +158,7 @@ struct decache_entry *decache_insert(struct decache_entry *parent, const char *n
         parent->childs->prev = new_entry;
         parent->childs = new_entry;
         parent->count++;
+        INFO("parent has %d children", parent->count);
     }
 
     return new_entry;
@@ -200,18 +202,18 @@ struct decache_entry *decache_walk(struct decache_entry *parent, const char *nam
         return NULL;
     }
 
-    DEBUG("Looking up decache entry %s:%d", name, namelen);
+    DEBUG("Looking up decache entry %s in %s", name, parent->name);
     /* Iterate the list of childs to see if there is any match */
     struct decache_entry *iter = parent->childs;
+    int idx = 1;
     do {
-        DEBUG("get decache entry %s", iter->name);
+        DEBUG("get decache entry %s [%d/%d]", iter->name, idx, parent->count);
         if (strncmp(iter->name, name, namelen) == 0 && iter->name[namelen] == 0) {
-            INFO("match decache entry %s == %s:%d", iter->name, name, namelen);
-            parent->childs = iter;
-
+            INFO("match decache entry %s == %s", iter->name, name);
             return iter;
         }
         iter = iter->next;
+        idx++;
     } while (iter != NULL);
 
     DEBUG("fail to get decached entry %s", name);
@@ -245,7 +247,7 @@ int decache_delete(const char *path) {
         parent->last_child = entry->prev;
     }
     INFO("free decache entry %s", entry->name);
-    free(entry);
+    decache_free(entry);
     free(p);
     return 0;
 }
@@ -255,9 +257,11 @@ void decache_free(struct decache_entry *entry) {
         return;
     }
     struct decache_entry *iter = entry->childs;
+    struct decache_entry *iter_next;
     for (int i = 0; i < entry->count; i++) {
-        decache_free(iter->next);
+        iter_next = iter->next;
         decache_free(iter);
+        iter = iter_next;
     }
     free(entry);
 }

@@ -20,6 +20,7 @@ extern struct decache_entry *root;
 void op_destory(void *data) {
     DEBUG("ext4 fuse fs destory");
     decache_free(root);
+    INFO("free root dentry done");
     // write back all the dirty bitmaps
     for (int i = 0; i < i_bitmap.group_num; i++) {
         if (i_bitmap.group[i].status == BITMAP_S_DIRTY) {
