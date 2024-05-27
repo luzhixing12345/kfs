@@ -41,10 +41,9 @@ void op_destory(void *data) {
 
     // write back all the dirty inodes
     for (int i = 0; i < icache->count; i++) {
-        if (icache->entries[i].status == ICACHE_S_DIRTY) {
+        if (ICACHE_IS_DIRTY(&icache->entries[i].inode)) {
             INFO("write back dirty inode %d", icache->entries[i].inode_idx);
-            disk_write(
-                inode_get_offset(icache->entries[i].inode_idx), sizeof(struct ext4_inode), &icache->entries[i].inode);
+            icache_write_back(&icache->entries[i]);
         }
     }
     free(icache->entries);

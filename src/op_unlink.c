@@ -50,6 +50,12 @@ int op_unlink(const char *path) {
         struct pblock_arr p_arr;
         inode_get_all_pblocks(inode, &p_arr);
         bitmap_pblock_free(&p_arr);
+
+        // write back dirty inode
+        if (ICACHE_IS_DIRTY(inode)) {
+            INFO("write back dirty inode %d", inode_idx);
+            icache_write_back((struct icache_entry *)inode);
+        }
         ICACHE_INVAL(inode);
     } else {
         ICACHE_DIRTY(inode);

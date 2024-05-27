@@ -21,12 +21,12 @@ int op_flush(const char *path, struct fuse_file_info *fi) {
         return -ENOENT;
     }
 
-    if (((struct icache_entry *)inode)->status == ICACHE_S_DIRTY) {
-        disk_write(inode_get_offset(inode_idx), sizeof(struct ext4_inode), inode);
+    if (ICACHE_IS_DIRTY(inode)) {
         INFO("write back dirty inode %d", inode_idx);
+        icache_write_back((struct icache_entry *)inode);
     }
 
-    // TODO: flush inode data block to disk
+    // FIXME: flush inode data block to disk
 
     DEBUG("finish flush");
     return 0;

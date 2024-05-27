@@ -70,6 +70,7 @@ struct icache_entry {
 #define ICACHE_UPDATE_CNT(inode) (((struct icache_entry *)(inode))->lru_count++)
 #define ICACHE_INVAL(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
 #define ICACHE_DIRTY(inode)      (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
+#define ICACHE_IS_DIRTY(inode)      (((struct icache_entry *)(inode))->status == ICACHE_S_DIRTY)
 
 /**
  * @brief find inode in icache
@@ -88,5 +89,7 @@ struct ext4_inode *icache_find(uint32_t inode_idx);
  * @return struct ext4_inode*
  */
 struct ext4_inode *icache_insert(uint32_t inode_idx, int read_from_disk);
+
+void icache_write_back(struct icache_entry *entry);
 
 #endif

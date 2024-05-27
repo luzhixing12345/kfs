@@ -216,9 +216,8 @@ struct ext4_inode *icache_lru_replace(uint32_t inode_idx, int read_from_disk) {
     }
 
     // if the inode is dirty, write it back to disk
-    if (icache->entries[lru_idx].status == ICACHE_S_DIRTY) {
-        off = inode_get_offset(icache->entries[lru_idx].inode_idx);
-        disk_write(off, sizeof(struct ext4_inode), &icache->entries[lru_idx].inode);
+    if (ICACHE_IS_DIRTY(&icache->entries[lru_idx].inode)) {
+        icache_write_back(&icache->entries[lru_idx]);
     }
     if (read_from_disk) {
         disk_read(inode_get_offset(inode_idx), sizeof(struct ext4_inode), &icache->entries[lru_idx].inode);
@@ -254,4 +253,8 @@ struct ext4_inode *icache_insert(uint32_t inode_idx, int read_from_disk) {
         INFO("insert inode %d into icache", inode_idx);
         return &icache->entries[icache->count - 1].inode;
     }
+}
+
+void icache_write_back(struct icache_entry *entry) {
+    disk_write(inode_get_offset(entry->inode_idx), sizeof(struct ext4_inode), &entry->inode);
 }
