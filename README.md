@@ -61,7 +61,7 @@ make debug_run
 
 ## 文档
 
-项目文档见 [kfs 项目文档](./report.md)
+项目文档见 [kfs 项目文档](./report.md), 视频介绍[链接](https://pan.baidu.com/s/1l5R2AKrJvmYyEZOhUYFlZA) 提取码：3rcb 
 
 项目技术文档见 `md-docs/`, 在线阅读: [kfs document](https://luzhixing12345.github.io/kfs/)
 
