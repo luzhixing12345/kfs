@@ -148,7 +148,7 @@ struct decache_entry *decache_insert(struct decache_entry *parent, const char *n
             parent->last_child = iter->prev;
             parent->count--;
             INFO("free last child %s", iter->name);
-            free(iter);
+            decache_free(iter);
         }
         // new dentry is inserted as the first child
         // because it may be used very soon
