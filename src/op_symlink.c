@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include <sys/types.h>
+
 #include "bitmap.h"
 #include "cache.h"
 #include "dentry.h"
@@ -68,7 +69,8 @@ int op_symlink(const char *from, const char *to) {
         ERR("No space for new dentry");
         return -ENOSPC;
     }
-    dentry_create(last_de, name, inode_idx, EXT4_FT_SYMLINK);
+    struct ext4_dir_entry_2 *new_de = dentry_create(last_de, name, inode_idx, EXT4_FT_SYMLINK);
+    ICACHE_SET_LAST_DE(inode, new_de);
     dcache_write_back();
     return 0;
 }

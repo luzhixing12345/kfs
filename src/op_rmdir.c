@@ -1,5 +1,6 @@
 
 #include <string.h>
+
 #include "bitmap.h"
 #include "cache.h"
 #include "dentry.h"
@@ -35,9 +36,9 @@ int op_rmdir(const char *path) {
         struct pblock_arr p_arr;
         inode_get_all_pblocks(inode, &p_arr);
         bitmap_pblock_free(&p_arr);
-        ICACHE_INVAL(inode);
+        ICACHE_SET_INVAL(inode);
     } else {
-        ICACHE_DIRTY(inode);
+        ICACHE_SET_DIRTY(inode);
     }
 
     // remove dir inode's dentry

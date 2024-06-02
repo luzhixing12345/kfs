@@ -24,7 +24,7 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_id
  * @param inode_idx
  * @return int
  */
-int dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx, int file_type);
+struct ext4_dir_entry_2 *dentry_create(struct ext4_dir_entry_2 *de, char *name, uint32_t inode_idx, int file_type);
 
 int dentry_add(struct ext4_inode *inode, uint32_t dir_inode_idx, uint32_t inode_idx, char *name);
 

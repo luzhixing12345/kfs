@@ -59,9 +59,9 @@ int op_unlink(const char *path) {
             INFO("write back dirty inode %d", inode_idx);
             icache_write_back((struct icache_entry *)inode);
         }
-        ICACHE_INVAL(inode);
+        ICACHE_SET_INVAL(inode);
     } else {
-        ICACHE_DIRTY(inode);
+        ICACHE_SET_DIRTY(inode);
     }
 
     DEBUG("unlinked inode %d", inode_idx);

@@ -45,7 +45,7 @@ int op_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // - fsync is called
     // - fs is destroyed(unmount)
 
-    ICACHE_DIRTY(inode);
+    ICACHE_SET_DIRTY(inode);
 
     INFO("Finished chmod on inode %d", inode_idx);
     return 0;

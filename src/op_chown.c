@@ -75,6 +75,6 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
     // - fsync is called
     // - fs is destroyed(unmount)
 
-    ICACHE_DIRTY(inode);
+    ICACHE_SET_DIRTY(inode);
     return 0;
 }

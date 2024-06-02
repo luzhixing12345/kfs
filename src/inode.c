@@ -70,14 +70,13 @@ static uint32_t __inode_get_data_pblock_tind(uint32_t lblock, uint32_t tindex_bl
  * @brief Get pblock for a given inode and lblock.  If extent is not NULL, it will
  * store the length of extent, that is, the number of consecutive pblocks
  * that are also consecutive lblocks (not counting the requested one).
- * 
- * @param inode 
- * @param lblock 
- * @param extent_len 
- * @return uint64_t 
+ *
+ * @param inode
+ * @param lblock
+ * @param extent_len
+ * @return uint64_t
  */
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len) {
-
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         // inode use ext4 extents
         return extent_get_pblock(&inode->i_block, lblock, extent_len);
@@ -368,7 +367,7 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     // set other 3 ext extents to 0
     ee++;
     memset(ee, 0, 3 * sizeof(struct ext4_extent));
-    ICACHE_DIRTY(*inode);  // mark new inode as dirty
+    ICACHE_SET_DIRTY(*inode);  // mark new inode as dirty
     INFO("new inode %u created", inode_idx);
     return 0;
 }

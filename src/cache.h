@@ -6,6 +6,7 @@
 
 #include "common.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_dentry.h"
 #include "ext4/ext4_inode.h"
 
 struct decache_entry;
@@ -15,7 +16,6 @@ int decache_init_root(uint32_t n);
 void decache_free(struct decache_entry *entry);
 struct decache_entry *decache_find(const char **path);
 int decache_delete(const char *path);
-
 
 #define DCACHE_ENTRY_NAME_LEN NAME_MAX
 
@@ -64,10 +64,12 @@ struct icache {
 };
 
 struct icache_entry {
-    struct ext4_inode inode;  // inode cached
-    uint32_t inode_idx;       // inode index
-    uint32_t lru_count;       // lru count
-    int status;               // empty, valid, dirty
+    struct ext4_inode inode;           // inode cached
+    uint32_t inode_idx;                // inode index
+    uint32_t lru_count;                // lru count
+    int status;                        // empty, valid, dirty
+    struct ext4_dir_entry_2 *last_de;  // last dentry offset(only for dir)
+                                       // used for quick dentry_last()
 };
 
 #define ICACHE_S_INVAL 0
@@ -79,9 +81,15 @@ struct icache_entry {
         if (((struct icache_entry *)inode)->lru_count < UINT32_MAX) \
             (((struct icache_entry *)inode)->lru_count++);          \
     } while (0)
-#define ICACHE_INVAL(inode)    (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
-#define ICACHE_DIRTY(inode)    (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
-#define ICACHE_IS_DIRTY(inode) (((struct icache_entry *)(inode))->status == ICACHE_S_DIRTY)
+
+#define ICACHE_SET_INVAL(inode)       (((struct icache_entry *)(inode))->status = ICACHE_S_INVAL)
+#define ICACHE_SET_DIRTY(inode)       (((struct icache_entry *)(inode))->status = ICACHE_S_DIRTY)
+#define ICACHE_IS_DIRTY(inode)        (((struct icache_entry *)(inode))->status == ICACHE_S_DIRTY)
+#define ICACHE_IS_VALID(inode)        (((struct icache_entry *)(inode))->status != ICACHE_S_INVAL)
+// last dentry offset macro
+#define ICACHE_CHECK_LAST_DE(inode)   (ICACHE_IS_VALID(inode) && ((struct icache_entry *)(inode))->last_de != NULL)
+#define ICACHE_GET_LAST_DE(inode)     (((struct icache_entry *)(inode))->last_de)
+#define ICACHE_SET_LAST_DE(inode, de) (((struct icache_entry *)(inode))->last_de = (de))
 
 /**
  * @brief find inode in icache

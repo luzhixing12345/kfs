@@ -93,6 +93,9 @@ DISK_IMG = disk.img
 
 disk:
 	dd if=/dev/zero of=$(DISK_IMG) bs=1M count=1000
+	$(MAKE) reset
+
+reset:
 	$(MKFS_SRC_PATH)/$(MKFS) $(DISK_IMG)
 
 run:

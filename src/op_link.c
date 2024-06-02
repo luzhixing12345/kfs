@@ -30,7 +30,7 @@ int op_link(const char *from, const char *to) {
     // hard link
     if (inode->i_links_count != UINT16_MAX) {
         inode->i_links_count++;
-        ICACHE_DIRTY(inode);
+        ICACHE_SET_DIRTY(inode);
         DEBUG("inode[%u] links %u", inode_idx, inode->i_links_count);
     } else {
         ERR("inode[%u] links count overflow", inode_idx);
@@ -51,7 +51,8 @@ int op_link(const char *from, const char *to) {
         ERR("No space for new dentry");
         return -ENOSPC;
     }
-    dentry_create(last_de, name, inode_idx, inode_mode2type(inode->i_mode));
+    struct ext4_dir_entry_2 *new_de = dentry_create(last_de, name, inode_idx, inode_mode2type(inode->i_mode));
     dcache_write_back();
+    ICACHE_SET_LAST_DE(inode, new_de);
     return 0;
 }

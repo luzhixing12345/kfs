@@ -107,12 +107,6 @@ int decache_init_root(uint32_t n) {
 /* Inserts a node as a childs of a given parent.  The parent is updated to
  * point the newly inserted childs as the first childs.  We return the new
  * entry so that further entries can be inserted.
- *
- *      [0]                  [0]
- *       /        ==>          \
- *      /         ==>           \
- * .->[1]->[2]-.       .->[1]->[3]->[2]-.
- * `-----------´       `----------------´
  */
 struct decache_entry *decache_insert(struct decache_entry *parent, const char *name, int namelen, uint32_t n) {
     /* TODO: Deal with names that exceed the allocated size */
@@ -297,6 +291,7 @@ struct ext4_inode *icache_lru_replace(uint32_t inode_idx, int read_from_disk) {
             icache->entries[i].inode_idx = inode_idx;
             icache->entries[i].status = ICACHE_S_VALID;
             icache->entries[i].lru_count = 0;
+            icache->entries[i].last_de = NULL;
             INFO("replace invalid entry %d by inode %d", i, inode_idx + 1);
             return &icache->entries[i].inode;
         }
@@ -317,6 +312,7 @@ struct ext4_inode *icache_lru_replace(uint32_t inode_idx, int read_from_disk) {
     icache->entries[lru_idx].inode_idx = inode_idx;
     icache->entries[lru_idx].status = ICACHE_S_VALID;
     icache->entries[lru_idx].lru_count = 0;
+    icache->entries[lru_idx].last_de = NULL;
     INFO("replace lru entry %d by inode %d", lru_idx, inode_idx);
     return &icache->entries[lru_idx].inode;
 }
@@ -341,6 +337,7 @@ struct ext4_inode *icache_insert(uint32_t inode_idx, int read_from_disk) {
         }
         icache->entries[icache->count].status = ICACHE_S_VALID;
         icache->entries[icache->count].lru_count = 0;
+        icache->entries[icache->count].last_de = NULL;
         icache->count++;
         INFO("insert inode %d into icache", inode_idx);
         return &icache->entries[icache->count - 1].inode;

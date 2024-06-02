@@ -66,7 +66,8 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
         return -ENOSPC;
     }
 
-    dentry_create(de, dir_name, dir_idx, EXT4_FT_REG_FILE);
+    struct ext4_dir_entry_2 * new_de = dentry_create(de, dir_name, dir_idx, EXT4_FT_REG_FILE);
+    ICACHE_SET_LAST_DE(inode, new_de);
     dcache_write_back();
 
     // for now, inode(parent) is not used any more, reuse it for the new created inode

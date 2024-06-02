@@ -41,7 +41,7 @@ int op_mkdir(const char *path, mode_t mode) {
         ERR("parent inode has no dentry");
         return -ENOENT;
     }
-    
+
     // check if disk has space for a new inode
     uint32_t dir_idx;
     uint64_t dir_pblock_idx;
@@ -58,12 +58,13 @@ int op_mkdir(const char *path, mode_t mode) {
         return -ENOSPC;
     }
 
-    dentry_create(de, dir_name, dir_idx, EXT4_FT_DIR);
+    struct ext4_dir_entry_2 *new_de = dentry_create(de, dir_name, dir_idx, EXT4_FT_DIR);
+    ICACHE_SET_LAST_DE(inode, new_de);
     dcache_write_back();
 
     // set parent inode link count + 1 because ..
     inode->i_links_count++;
-    ICACHE_DIRTY(inode);
+    ICACHE_SET_DIRTY(inode);
 
     // for now, inode(parent) is not used any more, reuse it for the new created inode
     // create a new inode

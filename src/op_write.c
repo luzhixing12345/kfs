@@ -54,7 +54,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
 
     // uint64_t file_size = EXT4_INODE_SIZE(inode);
     EXT4_INODE_SET_SIZE(inode, size);  // FIXME
-    ICACHE_DIRTY(inode);
+    ICACHE_SET_DIRTY(inode);
     DEBUG("write done");
 
     ASSERT(ret == size);
