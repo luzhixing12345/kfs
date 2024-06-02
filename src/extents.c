@@ -19,7 +19,8 @@
 extern struct ext4_super_block sb;
 
 /* Calculates the physical block from a given logical block and extent */
-static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock, uint32_t *len) {
+static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee, uint32_t lblock,
+                                          uint32_t *extent_len) {
     uint32_t block_ext_index = 0;
     uint32_t block_ext_offset = 0;
     uint32_t i;
@@ -35,12 +36,12 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
             DEBUG("ee_block = %d, ee_len = %d, lblock = %d", ee[i].ee_block, ee[i].ee_len, lblock);
             block_ext_index = i;
             block_ext_offset = lblock - ee[i].ee_block;
-            if (len) {
-                *len = ee[i].ee_block + ee[i].ee_len - lblock;
+            if (extent_len) {
+                *extent_len = ee[i].ee_len;
             }
             break;
         }
-        DEBUG("Block not found in extent [%d]", i);
+        DEBUG("Block not found in extent %d [%d-%d]", i, ee[i].ee_block, ee[i].ee_block + ee[i].ee_len);
     }
 
     if (n_ee == i) {
@@ -74,7 +75,7 @@ static void *extent_get_extents_in_block(uint32_t pblock) {
 }
 
 /* Returns the physical block number */
-uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
+uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *extent_len) {
     struct ext4_extent_header *eh = extents;
     struct ext4_extent *ee_array;
     uint64_t ret;
@@ -87,7 +88,7 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
         // Leaf inode, direct block
         // 1 extent header + 4 extents
         ee_array = extents + sizeof(struct ext4_extent_header);
-        ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, len);
+        ret = extent_get_block_from_ees(ee_array, eh->eh_entries, lblock, extent_len);
     } else {
         struct ext4_extent_idx *ei_array = extents + sizeof(struct ext4_extent_header);
         struct ext4_extent_idx *recurse_ei = NULL;
@@ -103,7 +104,7 @@ uint64_t extent_get_pblock(void *extents, uint32_t lblock, uint32_t *len) {
         ASSERT(recurse_ei != NULL);
 
         void *leaf_extents = extent_get_extents_in_block(EXT4_EXT_LEAF_ADDR(recurse_ei));
-        ret = extent_get_pblock(leaf_extents, lblock, len);
+        ret = extent_get_pblock(leaf_extents, lblock, extent_len);
         free(leaf_extents);
     }
 
