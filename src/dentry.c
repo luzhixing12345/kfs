@@ -125,7 +125,7 @@ int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name) {
 }
 
 int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
-    __le16 rec_len = ALIGN_TO_DENTRY(EXT4_DE_BASE_SIZE + strlen(name));
+    __le16 rec_len = DE_CALC_REC_LEN(strlen(name));
     __le16 left_space = de->rec_len - DE_REAL_REC_LEN(de);
     INFO("for new de %s: require space %u | left space %u", name, rec_len, left_space);
     if (left_space < rec_len) {

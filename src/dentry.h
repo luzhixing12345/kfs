@@ -7,8 +7,9 @@
 #include "inode.h"
 #include "logging.h"
 
-#define ALIGN_TO_DENTRY(__n) ALIGN_TO(__n, 4)
-#define DE_REAL_REC_LEN(de)  ((__le16)ALIGN_TO_DENTRY((de)->name_len + EXT4_DE_BASE_SIZE))
+#define ALIGN_TO_DENTRY(__n)  ALIGN_TO(__n, 4)
+#define DE_REAL_REC_LEN(de)   ((__le16)ALIGN_TO_DENTRY((de)->name_len + EXT4_DE_BASE_SIZE))
+#define DE_CALC_REC_LEN(size) (ALIGN_TO_DENTRY(EXT4_DE_BASE_SIZE + (size)))
 
 // get the dentry from the directory, with a given offset
 struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_idx, uint64_t offset);

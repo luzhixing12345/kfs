@@ -218,7 +218,11 @@ int decache_delete(const char *path) {
     const char *tmp = strdup(path);
     void *p = (void *)tmp;
     struct decache_entry *entry = decache_find(&tmp);
-    ASSERT(entry);  // must exist
+    if (!entry) {
+        DEBUG("path %s not found in decache", path);
+        free(p);
+        return 0;
+    }
     struct decache_entry *parent = entry->parent;
     ASSERT(parent->count != 0);
     parent->count--;

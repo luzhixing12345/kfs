@@ -50,8 +50,6 @@ umount tmp
 make debug_run
 ```
 
-> 结束后使用 <kbd>ctrl</kbd> + <kbd>c</kbd> 退出调试模式
-
 测试
 
 ```bash

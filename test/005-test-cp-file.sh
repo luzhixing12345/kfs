@@ -24,3 +24,40 @@ fi
 
 # 清理
 rm testfile.txt copyfile.txt
+
+#!/bin/bash
+
+# Create a directory to copy from
+mkdir copy_from_dir
+if [ $? -ne 0 ]; then
+    echo "Failed to create directory copy_from_dir"
+    exit -1
+fi
+
+# Create files to copy
+touch copy_from_dir/file1.txt
+touch copy_from_dir/file2.txt
+if [ $? -ne 0 ]; then
+    echo "Failed to create files in copy_from_dir"
+    exit -1
+fi
+
+# Create a directory to copy to
+mkdir copy_to_dir
+if [ $? -ne 0 ]; then
+    echo "Failed to create directory copy_to_dir"
+    exit -1
+fi
+
+# Copy files
+cp copy_from_dir/file1.txt copy_to_dir/
+cp copy_from_dir/file2.txt copy_to_dir/
+if [ $? -ne 0 ]; then
+    echo "Failed to copy files"
+    exit -1
+fi
+
+echo "Files copied successfully"
+
+# Cleanup
+rm -rf copy_from_dir copy_to_dir
