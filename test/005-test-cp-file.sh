@@ -9,6 +9,7 @@ if [ -f copyfile.txt ]; then
     echo "文件复制成功"
 else
     echo "文件复制失败"
+    exit -1
 fi
 
 # 检查内容是否一致
@@ -18,6 +19,7 @@ if [ "$original_content" == "$copy_content" ]; then
     echo "文件内容一致"
 else
     echo "文件内容不一致"
+    exit -1
 fi
 
 # 清理

@@ -52,6 +52,12 @@ make debug_run
 
 > 结束后使用 <kbd>ctrl</kbd> + <kbd>c</kbd> 退出调试模式
 
+测试
+
+```bash
+make run && make test
+```
+
 ## TODO
 
 - [ ] ext4 日志
@@ -61,7 +67,7 @@ make debug_run
 
 ## 文档
 
-项目文档见 [kfs 项目文档](./report.md), 视频介绍[链接](https://pan.baidu.com/s/1l5R2AKrJvmYyEZOhUYFlZA) 提取码：3rcb 
+项目文档见 [kfs 项目文档](./report.md), 视频介绍[链接](https://pan.baidu.com/s/1l5R2AKrJvmYyEZOhUYFlZA) 提取码:3rcb 
 
 项目技术文档见 `md-docs/`, 在线阅读: [kfs document](https://luzhixing12345.github.io/kfs/)
 

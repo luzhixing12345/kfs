@@ -12,6 +12,7 @@ if [ -f testdir/testfile.txt ]; then
     echo "文件移动成功"
 else
     echo "文件移动失败"
+    exit -1
 fi
 
 # 清理

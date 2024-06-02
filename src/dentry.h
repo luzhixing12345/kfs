@@ -40,3 +40,15 @@ int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name);
  * @return int
  */
 int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name);
+
+/**
+ * @brief find dentry by name
+ *
+ * @param inode
+ * @param inode_idx
+ * @param name
+ * @param de_before if not NULL, set the dentry before the found one
+ * @return struct ext4_dir_entry_2*
+ */
+struct ext4_dir_entry_2 *dentry_find(struct ext4_inode *inode, uint32_t inode_idx, char *name,
+                                     struct ext4_dir_entry_2 **de_before);

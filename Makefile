@@ -17,11 +17,11 @@ CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
 CFLAGS += $(shell pkg-config --cflags $(THIRD_LIB))
 LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))
 
-TEST_PATH = test # 测试文件夹
-TMP_PATH = tmp # 临时文件夹
+TEST_PATH = test
+TMP_PATH = tmp
 # 项目名字(库)
 RELEASE = $(TARGET)
-LIB = lib$(TARGET).a # release库
+LIB = lib$(TARGET).a
 # ------------------------- #
 
 rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
@@ -119,9 +119,7 @@ dump:
 	$(DUMPFS) -f $(DISK_IMG)
 
 test:
-	$(MAKE) clean
-	$(MAKE) debug -j4
-	python test.py
+	cd $(TMP_PATH) && ../$(TEST_PATH)/test_run.sh
 
 clean:
 	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)

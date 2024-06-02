@@ -45,21 +45,10 @@ struct ext4_dir_entry_2 *dentry_last(struct ext4_inode *inode, uint32_t inode_id
         DEBUG("find last dentry offset in icache");
         return ICACHE_GET_LAST_DE(inode);
     }
-    uint64_t offset = 0;
-    struct ext4_dir_entry_2 *de = NULL;
-    struct ext4_dir_entry_2 *de_next = NULL;
-    while ((de_next = dentry_next(inode, inode_idx, offset))) {
-        if (de_next->inode_idx == 0 && de_next->name_len == 0) {
-            // reach the ext4_dir_entry_tail
-            ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
-            ICACHE_SET_LAST_DE(inode, de);
-            DEBUG("add last dentry %s to icache", de->name);
-            return de;
-        }
-        offset += de_next->rec_len;
-        ASSERT(offset <= 4096);
-        de = de_next;
-        DEBUG("pass dentry %s[%u:%u]", de_next->name, de_next->inode_idx, de_next->rec_len);
+
+    struct ext4_dir_entry_2 *de = dentry_find(inode, inode_idx, NULL, NULL);
+    if (de != NULL) {
+        return de;
     }
     ERR("fail to find the last dentry");
     return NULL;
@@ -118,36 +107,21 @@ int dentry_init(uint32_t parent_idx, uint32_t inode_idx) {
 
 int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name) {
     INFO("try to delete dentry %s", name);
-    uint64_t name_len = strlen(name);
     dcache_init(inode, inode_idx);
-    struct ext4_dir_entry_2 *de = NULL, *de_next;
-    uint64_t offset = 0;
-    while ((de_next = dentry_next(inode, inode_idx, offset))) {
-        offset += de_next->rec_len;
-        // if reach the end
-        if (de_next->inode_idx == 0 && de_next->name_len == 0) {
-            ERR("dentry %s not found", name);
-            ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
-            return -ENOENT;
-        }
+    struct ext4_dir_entry_2 *de, *de_before;
+    de = dentry_find(inode, inode_idx, name, &de_before);
+    ASSERT(de != NULL);
 
-        INFO("dentry %s[%d]", de_next->name, de_next->inode_idx);
-        if (strncmp(de_next->name, name, name_len) == 0) {
-            // delete dentry just means add de_next->rec_len to de->rec_len
-            ASSERT(de != NULL);
-            INFO("merge de[%s] and de[%s]", de->name, de_next->name);
-            INFO("de[%s] rec_len %u -> %u", de->name, de->rec_len, de->rec_len + de_next->rec_len);
-            de->rec_len += de_next->rec_len;
-            if (ICACHE_GET_LAST_DE(inode) == de_next) {
-                // if de_next is the last dentry, set last de to de
-                ICACHE_SET_LAST_DE(inode, de);
-                DEBUG("set last dentry to %s", de->name);
-            }
-            return 0;
-        }
-        de = de_next;
+    // delete dentry just means add de_next->rec_len to de->rec_len
+    INFO("merge de[%s] and de[%s]", de_before->name, de->name);
+    INFO("de[%s] rec_len %u -> %u", de_before->name, de_before->rec_len, de_before->rec_len + de->rec_len);
+    de_before->rec_len += de->rec_len;
+    if (ICACHE_GET_LAST_DE(inode) == de) {
+        // if de_next is the last dentry, set last de to de
+        ICACHE_SET_LAST_DE(inode, de_before);
+        DEBUG("set last dentry to %s", de_before->name);
     }
-    return -ENOENT;
+    return 0;
 }
 
 int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
@@ -160,4 +134,48 @@ int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
     }
     INFO("space for new dentry is enough");
     return 0;
+}
+
+/**
+ * @brief find dentry by name
+ *
+ * @param inode
+ * @param inode_idx
+ * @param name if NULL, find the last dentry
+ * @param de_before if not NULL, set the dentry before the found one
+ * @return struct ext4_dir_entry_2*
+ */
+struct ext4_dir_entry_2 *dentry_find(struct ext4_inode *inode, uint32_t inode_idx, char *name,
+                                     struct ext4_dir_entry_2 **de_before) {
+    struct ext4_dir_entry_2 *de = NULL;
+    struct ext4_dir_entry_2 *de_next = NULL;
+    uint64_t offset = 0;
+    uint64_t name_len = name ? strlen(name) : 0;
+    while ((de_next = dentry_next(inode, inode_idx, offset))) {
+        if (de_next->inode_idx == 0 && de_next->name_len == 0) {
+            // reach the ext4_dir_entry_tail
+            ASSERT(((struct ext4_dir_entry_tail *)de_next)->det_reserved_ft == EXT4_FT_DIR_CSUM);
+            if (name == NULL) {
+                // name is NULL means find the last dentry
+                ICACHE_SET_LAST_DE(inode, de);
+                DEBUG("add last dentry %s to icache", de->name);
+                return de;
+            } else {
+                DEBUG("fail to find dentry %s", name);
+                return NULL;
+            }
+        }
+        DEBUG("pass dentry %s[%u:%u]", de_next->name, de_next->inode_idx, de_next->rec_len);
+        offset += de_next->rec_len;
+        if (name_len == de_next->name_len && strncmp(de_next->name, name, name_len) == 0) {
+            if (de_before != NULL) {
+                *de_before = de;
+            }
+            INFO("find dentry %s", name);
+            return de_next;
+        }
+        de = de_next;
+    }
+    ERR("fail to find the last dentry");
+    return NULL;
 }

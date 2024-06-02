@@ -65,3 +65,4 @@ example/
 *.img
 *.log
 mkfs/mkfs
+old_test/

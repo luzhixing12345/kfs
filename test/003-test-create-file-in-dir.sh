@@ -9,6 +9,7 @@ if [ -f testdir/testfile.txt ]; then
     echo "在目录中创建文件成功"
 else
     echo "在目录中创建文件失败"
+    exit -1
 fi
 
 # 清理

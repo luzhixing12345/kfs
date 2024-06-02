@@ -6,6 +6,7 @@ if [ -f testfile.txt ]; then
     echo "文件创建成功"
 else
     echo "文件创建失败"
+    exit -1
 fi
 
 # 删除文件
@@ -14,4 +15,5 @@ if [ ! -f testfile.txt ]; then
     echo "文件删除成功"
 else
     echo "文件删除失败"
+    exit -1
 fi
