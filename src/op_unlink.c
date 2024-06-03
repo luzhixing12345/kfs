@@ -12,6 +12,31 @@
 #include "logging.h"
 #include "ops.h"
 
+int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx) {
+    // unlink means link_count - 1
+    inode->i_links_count--;
+
+    // delete it only if link_count == 0
+    if (inode->i_links_count == 0) {
+        INFO("delete inode [%d]", inode_idx);
+        // just set inode and data bitmap to 0 is ok
+        bitmap_inode_set(inode_idx, 0);
+        struct pblock_arr p_arr;
+        inode_get_all_pblocks(inode, &p_arr);
+        bitmap_pblock_free(&p_arr);
+
+        // write back dirty inode
+        if (ICACHE_IS_DIRTY(inode)) {
+            INFO("write back dirty inode %d", inode_idx);
+            icache_write_back((struct icache_entry *)inode);
+        }
+        ICACHE_SET_INVAL(inode);
+    } else {
+        ICACHE_SET_DIRTY(inode);
+    }
+    return 0;
+}
+
 int op_unlink(const char *path) {
     DEBUG("unlink %s", path);
 
@@ -39,30 +64,10 @@ int op_unlink(const char *path) {
     }
     dcache_write_back();
 
-    // unlink means link_count - 1
-    inode->i_links_count--;
-
-    // delete it only if link_count == 0
-    if (inode->i_links_count == 0) {
-        INFO("delete inode %s[%d]", name, inode_idx);
-        // just set inode and data bitmap to 0 is ok
-        bitmap_inode_set(inode_idx, 0);
-        struct pblock_arr p_arr;
-        inode_get_all_pblocks(inode, &p_arr);
-        bitmap_pblock_free(&p_arr);
-
-        INFO("delete inode %s[%d] decache entry", name, inode_idx);
-        decache_delete(path);  // delete from decache
-
-        // write back dirty inode
-        if (ICACHE_IS_DIRTY(inode)) {
-            INFO("write back dirty inode %d", inode_idx);
-            icache_write_back((struct icache_entry *)inode);
-        }
-        ICACHE_SET_INVAL(inode);
-    } else {
-        ICACHE_SET_DIRTY(inode);
-    }
+    unlink_inode(inode, inode_idx);
+    
+    INFO("delete inode %s[%d] decache entry", name, inode_idx);
+    decache_delete(path);  // delete from decache
 
     DEBUG("unlinked inode %d", inode_idx);
     return 0;

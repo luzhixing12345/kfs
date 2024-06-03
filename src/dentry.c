@@ -69,7 +69,7 @@ struct ext4_dir_entry_2 *dentry_create(struct ext4_dir_entry_2 *de, char *name, 
     strncpy(new_de->name, name, new_de->name_len);
     new_de->name[new_de->name_len] = 0;
     INFO("create new dentry %s[%u:%u:%u]", new_de->name, inode_idx, new_de->name_len, new_de->rec_len);
-
+    
     return new_de;
 }
 
@@ -149,6 +149,7 @@ struct ext4_dir_entry_2 *dentry_find(struct ext4_inode *inode, uint32_t inode_id
                                      struct ext4_dir_entry_2 **de_before) {
     struct ext4_dir_entry_2 *de = NULL;
     struct ext4_dir_entry_2 *de_next = NULL;
+    dcache_init(inode, inode_idx);
     uint64_t offset = 0;
     uint64_t name_len = name ? strlen(name) : 0;
     while ((de_next = dentry_next(inode, inode_idx, offset))) {

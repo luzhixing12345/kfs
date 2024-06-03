@@ -1,6 +1,7 @@
 
 #pragma once
 #include "common.h"
+#include "ext4/ext4.h"
 
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg);
 int op_readlink(const char *path, char *buf, size_t bufsize);
@@ -29,3 +30,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
 int op_releasedir(const char *path, struct fuse_file_info *fi);
 int op_statfs(const char *path, struct statvfs *stbuf);
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi);
+
+
+// in op_unlink.c
+int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx);

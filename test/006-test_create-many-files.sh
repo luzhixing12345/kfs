@@ -25,3 +25,4 @@ for i in {1..10}; do
 done
 
 echo "Created multiple files and directories successfully"
+rm -rf testdir
