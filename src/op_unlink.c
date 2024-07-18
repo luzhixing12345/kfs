@@ -65,7 +65,7 @@ int op_unlink(const char *path) {
     dcache_write_back();
 
     unlink_inode(inode, inode_idx);
-    
+
     INFO("delete inode %s[%d] decache entry", name, inode_idx);
     decache_delete(path);  // delete from decache
 

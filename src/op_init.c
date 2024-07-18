@@ -25,7 +25,6 @@ unsigned fuse_capable;
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
 
-
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
 
@@ -55,7 +54,6 @@ int super_group_fill(void) {
     }
     return 0;
 }
-
 
 void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     INFO("Using FUSE protocol %d.%d", info->proto_major, info->proto_minor);

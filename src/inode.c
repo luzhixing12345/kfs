@@ -373,7 +373,6 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     return 0;
 }
 
-
 int inode_mode2type(mode_t mode) {
     if (mode & S_IFDIR) {
         return EXT4_FT_DIR;

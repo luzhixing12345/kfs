@@ -15,9 +15,6 @@
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
-#include "common.h"
-
-
 
 int op_open(const char *path, struct fuse_file_info *fi) {
     DEBUG("open %s with flags %o", path, fi->flags);

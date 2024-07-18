@@ -69,7 +69,7 @@ struct ext4_dir_entry_2 *dentry_create(struct ext4_dir_entry_2 *de, char *name, 
     strncpy(new_de->name, name, new_de->name_len);
     new_de->name[new_de->name_len] = 0;
     INFO("create new dentry %s[%u:%u:%u]", new_de->name, inode_idx, new_de->name_len, new_de->rec_len);
-    
+
     return new_de;
 }
 

@@ -105,6 +105,9 @@ run:
 debug_run:
 	@$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
 
+um:
+	umount $(TMP_PATH)
+
 mkfs: $(MKFS_SRC_PATH)/$(MKFS)
 
 MKFS_DEPENDS = $(SRC_PATH)/disk.o $(SRC_PATH)/logging.o
@@ -119,7 +122,10 @@ dump:
 	$(DUMPFS) -f $(DISK_IMG)
 
 test:
+	$(MAKE) disk
+	$(MAKE) run
 	cd $(TMP_PATH) && ../$(TEST_PATH)/test_run.sh
+	$(MAKE) um
 
 clean:
 	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)

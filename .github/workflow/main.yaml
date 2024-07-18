@@ -1,0 +1,17 @@
+name: main
+
+on: [push, pull_request]
+
+jobs:
+  simplefs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: install-dependencies
+      run: |
+          sudo apt-get install fuse3 libfuse3-dev pkg-config
+    - name: automated test
+      run: |
+          make
+          make test
+      shell: bash

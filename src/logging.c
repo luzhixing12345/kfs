@@ -26,7 +26,7 @@ static const char *loglevel_str[] = {
     [LOG_DEBUG] = "debug",
 };
 
-#ifndef LOG_LEVEL 
+#ifndef LOG_LEVEL
 #define LOG_LEVEL LOG_DEBUG
 #endif
 

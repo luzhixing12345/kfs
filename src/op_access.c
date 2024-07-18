@@ -1,6 +1,7 @@
 
 #include <errno.h>
 #include <sys/types.h>
+
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
@@ -46,6 +47,6 @@ int op_access(const char *path, int mask) {
             return -EACCES;
         }
     }
-    
+
     return 0;
 }
