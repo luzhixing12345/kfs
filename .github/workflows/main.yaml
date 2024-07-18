@@ -3,7 +3,7 @@ name: main
 on: [push, pull_request]
 
 jobs:
-  simplefs:
+  kfs-test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -13,5 +13,6 @@ jobs:
     - name: automated test
       run: |
           make
+          mkdir tmp
           make test
       shell: bash
