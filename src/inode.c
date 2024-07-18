@@ -309,6 +309,7 @@ uint32_t inode_get_parent_idx_by_path(const char *path) {
     char *tmp = strdup(path);
     char *last_slashp = strrchr(tmp, '/');
     if (last_slashp == path) {
+        free(tmp);
         return 0;
     }
     *(last_slashp + 1) = '\0';
@@ -372,23 +373,6 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     return 0;
 }
 
-int inode_bitmap_has_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock) {
-    // find a valid inode_idx in GDT
-    *inode_idx = bitmap_inode_find(parent_idx);
-    if (*inode_idx == 0) {
-        ERR("No free inode");
-        return -ENOSPC;
-    }
-
-    // find an empty data block
-    *pblock = bitmap_pblock_find(*inode_idx);
-    if (*pblock == UINT64_MAX) {
-        ERR("No free block");
-        return -ENOSPC;
-    }
-    INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
-    return 0;
-}
 
 int inode_mode2type(mode_t mode) {
     if (mode & S_IFDIR) {

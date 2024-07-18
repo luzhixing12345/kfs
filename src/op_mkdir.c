@@ -45,7 +45,7 @@ int op_mkdir(const char *path, mode_t mode) {
     // check if disk has space for a new inode
     uint32_t dir_idx;
     uint64_t dir_pblock_idx;
-    if (inode_bitmap_has_space(parent_idx, &dir_idx, &dir_pblock_idx) < 0) {
+    if (bitmap_find_space(parent_idx, &dir_idx, &dir_pblock_idx) < 0) {
         ERR("No space for new inode");
         return -ENOSPC;
     }
@@ -54,6 +54,7 @@ int op_mkdir(const char *path, mode_t mode) {
     // create a new dentry, and write back to disk
     char *dir_name = strrchr(path, '/') + 1;
     if (dentry_has_enough_space(de, dir_name) < 0) {
+        // FIXME: try to find a new block for dir
         ERR("No space for new dentry");
         return -ENOSPC;
     }

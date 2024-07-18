@@ -28,7 +28,8 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
         return -ENOSYS;
     }
 
-    // FIXME: bug by "sudo chown root a.txt"
+    // chown operation is allowed only for root, but
+    // No other user (including root) can access the contents of the mounted filesystem
 
     // if gid < 0, operation not permitted
     if ((signed)gid < 0) {
@@ -55,7 +56,7 @@ int op_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
         return -ENOENT;
     }
 
-    if (inode_check_permission(inode, RDWR) < 0) {
+    if (inode_check_permission(inode, WRITE) < 0) {
         INFO("Permission denied");
         return -EACCES;
     }

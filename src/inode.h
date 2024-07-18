@@ -58,9 +58,6 @@ int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32
  * @return int
  */
 int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode);
-
-int inode_bitmap_has_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock);
-
 int inode_mode2type(mode_t mode);
 
 #endif

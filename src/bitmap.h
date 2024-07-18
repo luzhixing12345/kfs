@@ -57,6 +57,16 @@ int bitmap_inode_set(uint32_t inode_idx, int is_used);
 uint64_t bitmap_pblock_find(uint32_t inode_idx);
 
 /**
+ * @brief find a free inode and data block for new inode
+ * 
+ * @param parent_idx 
+ * @param inode_idx 
+ * @param pblock 
+ * @return int 0 if success, <0 if fail
+ */
+int bitmap_find_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock);
+
+/**
  * @brief set block bitmap to 1/0
  *
  * @param block_idx

@@ -11,6 +11,8 @@
 #include "logging.h"
 #include "ops.h"
 
+extern struct dcache *dcache;
+
 int op_flush(const char *path, struct fuse_file_info *fi) {
     DEBUG("flush path %s", path);
 
@@ -26,7 +28,10 @@ int op_flush(const char *path, struct fuse_file_info *fi) {
         icache_write_back((struct icache_entry *)inode);
     }
 
-    // FIXME: flush inode data block to disk
+    // flush data block to disk
+    if (dcache->inode_idx == inode_idx && dcache->dirty) {
+        dcache_write_back();
+    }
 
     DEBUG("finish flush");
     return 0;

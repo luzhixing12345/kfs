@@ -30,6 +30,7 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
         DEBUG("read link destination fits in inode");
         memcpy(buf, inode->i_block, inode_size);
     } else {
+        // TODO: check
         if (inode_size >= bufsize) {
             // bufsize because we need to add a null terminator
             DEBUG("inode size %lu >= bufsize %lu, need to truncate", inode_size, bufsize);

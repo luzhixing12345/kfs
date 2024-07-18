@@ -30,7 +30,8 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
 int op_releasedir(const char *path, struct fuse_file_info *fi);
 int op_statfs(const char *path, struct statvfs *stbuf);
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi);
-
+int op_lock(const char *path, struct fuse_file_info *fi, int cmd, struct flock *lock);
+off_t op_lseek(const char *, off_t off, int whence, struct fuse_file_info *);
 
 // in op_unlink.c
 int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx);

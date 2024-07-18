@@ -104,11 +104,20 @@ uint64_t bitmap_pblock_find(uint32_t inode_idx) {
         }
     }
 
-    // FIXME: temporary solution, assume that find a free block in the same group as inode
-    // TODO: better block select
+    INFO("no free block in group %u", group_idx);
+    for (uint32_t i = group_idx + 1; i != group_idx; i = (i + 1) % group_num) {
+        DEBUG("finding free block in group %u", i);
+        for (uint32_t j = 0; j < EXT4_BLOCKS_PER_GROUP(sb); j++) {
+            if (BIT0(d_bitmap.group[i].bitmap, j)) {
+                new_block_idx = (i * EXT4_BLOCKS_PER_GROUP(sb)) + j;
+                INFO("found free block %u", new_block_idx);
+                return new_block_idx;
+            }
+        }
+    }
 
     ERR("no free block");
-    return new_block_idx;
+    return UINT64_MAX;
 }
 
 int bitmap_pblock_set(uint64_t block_idx, int is_used) {
@@ -133,6 +142,24 @@ int bitmap_pblock_free(struct pblock_arr *p_arr) {
     }
     free(p_arr->arr);
     INFO("free pblocks done");
+    return 0;
+}
+
+int bitmap_find_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock) {
+    // find a valid inode_idx in GDT
+    *inode_idx = bitmap_inode_find(parent_idx);
+    if (*inode_idx == 0) {
+        ERR("No free inode");
+        return -ENOSPC;
+    }
+
+    // find an empty data block
+    *pblock = bitmap_pblock_find(*inode_idx);
+    if (*pblock == UINT64_MAX) {
+        ERR("No free block");
+        return -ENOSPC;
+    }
+    INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
     return 0;
 }
 

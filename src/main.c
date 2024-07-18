@@ -58,6 +58,9 @@ static struct fuse_operations e4f_ops = {
     // .statfs = op_statfs,
     .create = op_create,
     .destroy = op_destory,
+    .statfs = op_statfs,
+    .lock = op_lock,
+    .lseek = op_lseek
 };
 
 static struct e4f {

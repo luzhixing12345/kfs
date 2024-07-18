@@ -41,7 +41,8 @@ int op_symlink(const char *from, const char *to) {
     // symbolic link do not increase link count!
     uint32_t inode_idx;
     uint64_t pblock;
-    if (inode_bitmap_has_space(0, &inode_idx, &pblock) < 0) {
+    if (bitmap_find_space(0, &inode_idx, &pblock) < 0) {
+        ERR("No free inode");
         return -ENOSPC;
     }
 
