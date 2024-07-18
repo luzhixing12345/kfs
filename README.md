@@ -1,5 +1,7 @@
 # kfs
 
+![badge.svg](https://github.com/luzhixing12345/kfs/actions/workflows/main.yaml/badge.svg)
+
 设计实现一个Linux内核模块,此模块完成如下功能
 
 - [x] 将新创建的文件系统的操作接口和VFS对接.
