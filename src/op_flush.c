@@ -29,7 +29,7 @@ int op_flush(const char *path, struct fuse_file_info *fi) {
     }
 
     // flush data block to disk
-    if (dcache->inode_idx == inode_idx && dcache->dirty) {
+    if (dcache->inode_idx == inode_idx) {
         dcache_write_back();
     }
 

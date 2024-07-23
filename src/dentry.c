@@ -141,7 +141,7 @@ int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
  *
  * @param inode
  * @param inode_idx
- * @param name if NULL, find the last dentry
+ * @param name dentry name; find the last dentry if name is NULL
  * @param de_before if not NULL, set the dentry before the found one
  * @return struct ext4_dir_entry_2*
  */

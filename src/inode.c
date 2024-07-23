@@ -114,10 +114,15 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
         // inode use ext4 extents
         struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
         struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
-        ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
+        
         // TODO eh->eh_depth > 0
         if (eh->eh_depth == 0) {
             pblock_arr->len = eh->eh_entries;
+            if (pblock_arr->len == 0) {
+                // short symbolic link has no pblocks
+                return 0;
+            }
+            ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
             pblock_arr->arr = malloc(pblock_arr->len * sizeof(struct pblock_range));
             for (int i = 0; i < pblock_arr->len; i++) {
                 pblock_arr->arr[i].pblock = EXT4_EXT_PADDR(ee[i]);

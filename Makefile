@@ -122,10 +122,10 @@ dump:
 	$(DUMPFS) -f $(DISK_IMG)
 
 test:
-	$(MAKE) disk
-	$(MAKE) run
+	@$(MAKE) disk > /dev/null
+	@$(MAKE) run > /dev/null
 	cd $(TMP_PATH) && ../$(TEST_PATH)/test_run.sh
-	$(MAKE) um
+	@$(MAKE) um > /dev/null
 
 clean:
 	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)

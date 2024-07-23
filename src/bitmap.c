@@ -140,8 +140,10 @@ int bitmap_pblock_free(struct pblock_arr *p_arr) {
             bitmap_pblock_set(range->pblock + j, 0);
         }
     }
-    free(p_arr->arr);
-    INFO("free pblocks done");
+    if (p_arr->len) {
+        free(p_arr->arr);
+        INFO("free pblocks done");
+    }
     return 0;
 }
 
@@ -153,13 +155,20 @@ int bitmap_find_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock
         return -ENOSPC;
     }
 
-    // find an empty data block
-    *pblock = bitmap_pblock_find(*inode_idx);
-    if (*pblock == UINT64_MAX) {
-        ERR("No free block");
-        return -ENOSPC;
+    if (!pblock) {
+        // short symlink inode does not need pblock, just return inode_idx
+        INFO("no pblock needed");
+        INFO("new dentry [inode:%u]", *inode_idx);
+    } else {
+        // find an empty data block
+        *pblock = bitmap_pblock_find(*inode_idx);
+        if (*pblock == UINT64_MAX) {
+            ERR("No free block");
+            return -ENOSPC;
+        }
+        INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
     }
-    INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
+
     return 0;
 }
 

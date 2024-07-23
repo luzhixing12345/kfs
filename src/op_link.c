@@ -53,6 +53,6 @@ int op_link(const char *from, const char *to) {
     }
     struct ext4_dir_entry_2 *new_de = dentry_create(last_de, name, inode_idx, inode_mode2type(inode->i_mode));
     dcache_write_back();
-    ICACHE_SET_LAST_DE(inode, new_de);
+    ICACHE_SET_LAST_DE(to_dir_inode, new_de);
     return 0;
 }

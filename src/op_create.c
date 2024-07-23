@@ -33,23 +33,14 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     DEBUG("create path %s with mode %o", path, mode);
 
     // first find the parent directory of this path
-    uint32_t parent_idx = inode_get_parent_idx_by_path(path);
-    if (parent_idx == 0) {
-        // root directory
-        return -ENOENT;
-    }
-    struct ext4_inode *inode;
-    if (inode_get_by_number(parent_idx, &inode) < 0) {
+    uint32_t parent_idx;
+    struct ext4_inode *parent_inode;
+    
+    if (inode_get_parent_by_path(path, &parent_inode, &parent_idx) < 0) {
         DEBUG("fail to get parent inode %d", parent_idx);
         return -ENOENT;
     }
-
-    // check if the parent inode has empty space for a new dentry
-    struct ext4_dir_entry_2 *de = dentry_last(inode, parent_idx);
-    if (de == NULL) {
-        ERR("parent inode has no dentry");
-        return -ENOENT;
-    }
+    
     // check if disk has space for a new inode
     uint32_t dir_idx;
     uint64_t dir_pblock_idx;
@@ -58,20 +49,28 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
         return -ENOSPC;
     }
 
+    // check if the parent inode has empty space for a new dentry
+    struct ext4_dir_entry_2 *de = dentry_last(parent_inode, parent_idx);
+    if (de == NULL) {
+        ERR("parent inode has no dentry");
+        return -ENOENT;
+    }
+    
     INFO("check ok!");
     // create a new dentry, and write back to disk
     char *dir_name = strrchr(path, '/') + 1;
     if (dentry_has_enough_space(de, dir_name) < 0) {
+        // TODO: extend new block
         ERR("No space for new dentry");
         return -ENOSPC;
     }
 
     struct ext4_dir_entry_2 *new_de = dentry_create(de, dir_name, dir_idx, EXT4_FT_REG_FILE);
-    ICACHE_SET_LAST_DE(inode, new_de);
+    ICACHE_SET_LAST_DE(parent_inode, new_de);
     dcache_write_back();
 
-    // for now, inode(parent) is not used any more, reuse it for the new created inode
     // create a new inode
+    struct ext4_inode *inode;
     inode_create(dir_idx, mode, dir_pblock_idx, &inode);
     INFO("create new inode");
 

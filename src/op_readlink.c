@@ -16,6 +16,7 @@
 #include "common.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_extents.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -28,7 +29,8 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
     if (inode_size <= EXT4_N_BLOCKS * sizeof(inode->i_block)) {
         /* <= 60 bytes: Link destination fits in inode */
         DEBUG("read link destination fits in inode");
-        memcpy(buf, inode->i_block, inode_size);
+        struct ext4_extent *ee = (struct ext4_extent *)((char *)(&inode->i_block) + sizeof(struct ext4_extent_header));
+        memcpy(buf, ee, inode_size);
     } else {
         // TODO: check
         if (inode_size >= bufsize) {

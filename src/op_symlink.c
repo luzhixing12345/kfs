@@ -7,6 +7,7 @@
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_extents.h"
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
@@ -18,15 +19,17 @@ static int inode_symlink_create(struct ext4_inode *inode, const char *path) {
     int link_len = strlen(path);
     uint64_t pblock;
     if (link_len <= EXT4_N_BLOCKS * sizeof(inode->i_block)) {
-        memcpy(inode->i_block, path, link_len);
-    } else {
-        if (link_len >= EXT4_BLOCK_SIZE(sb)) {
-            ERR("link too long");
-            return -ENAMETOOLONG;
-        }
+        // <= 60 bytes: Link destination fits in inode
+        // free pblock and set eh->eh_entries to 0
         pblock = inode_get_data_pblock(inode, 0, NULL);
-        disk_write(pblock, link_len, (void *)path);
-        EXT4_INODE_SET_BLOCKS(inode, 1);
+        INFO("free pblock %u", pblock);
+        bitmap_pblock_set(pblock, 0);
+        struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
+        eh->eh_entries = 0;
+        struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
+        memcpy(ee, path, link_len);
+    } else {
+        ASSERT(0);
     }
     EXT4_INODE_SET_SIZE(inode, link_len);
     INFO("create symbolic inode %s", path);
@@ -73,5 +76,6 @@ int op_symlink(const char *from, const char *to) {
     struct ext4_dir_entry_2 *new_de = dentry_create(last_de, name, inode_idx, EXT4_FT_SYMLINK);
     ICACHE_SET_LAST_DE(inode, new_de);
     dcache_write_back();
+
     return 0;
 }

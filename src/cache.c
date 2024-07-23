@@ -42,7 +42,6 @@ int cache_init() {
     dcache = malloc(sizeof(struct dcache) + BLOCK_SIZE);
     dcache->lblock = -1;
     dcache->pblock = -1;
-    dcache->dirty = 0;
     dcache->inode_idx = 0;
     INFO("dcache init");
 

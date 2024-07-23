@@ -40,7 +40,6 @@ struct dcache {
     uint32_t inode_idx;  // current inode_idx
     uint32_t lblock;     // current logic block id
     uint32_t pblock;     // current physical block id, for quick write back
-    bool dirty;          // dirty flag
     uint8_t buf[];       // buffer
 };
 
