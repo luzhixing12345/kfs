@@ -33,3 +33,6 @@ for file in $files; do
         printf "[${RED}fail${NC}][%${width}d/%${width}d] %s\n" "$fail" "$file_count" "$file"
     fi
 done
+
+# 统计输出所有结果
+printf "\nTotal: %d\nSuccess: %d\nFail: %d\n" "$total" "$success" "$fail"

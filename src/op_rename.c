@@ -47,7 +47,7 @@ int mv_in_local_dir(struct ext4_inode *inode, uint32_t inode_idx, const char *fr
             dentry_delete(inode, inode_idx, oldname);
             decache_delete(from);
             ASSERT(0);
-            // TODO: allocate a new data block and add a new dentry
+            // FIXME: allocate a new data block and add a new dentry
         }
     } else {
         // RENAME_NOREPLACE

@@ -48,12 +48,12 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
         ret = disk_write(
             BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
     } else {
-        // FIXME
+        // FIXME: when write bytes > 4KB, should write multiple blocks
         ASSERT(0);
     }
 
     // uint64_t file_size = EXT4_INODE_SIZE(inode);
-    EXT4_INODE_SET_SIZE(inode, size);  // FIXME
+    EXT4_INODE_SET_SIZE(inode, size);  // FIXME: should be the real size of pblock numbers
     ICACHE_SET_DIRTY(inode);
     DEBUG("write done");
 

@@ -29,6 +29,7 @@ static int inode_symlink_create(struct ext4_inode *inode, const char *path) {
         struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
         memcpy(ee, path, link_len);
     } else {
+        // FIXME: create a new pblock for the symbolic link
         ASSERT(0);
     }
     EXT4_INODE_SET_SIZE(inode, link_len);

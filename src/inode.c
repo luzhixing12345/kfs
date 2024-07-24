@@ -115,7 +115,6 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
         struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
         struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
         
-        // TODO eh->eh_depth > 0
         if (eh->eh_depth == 0) {
             pblock_arr->len = eh->eh_entries;
             if (pblock_arr->len == 0) {
@@ -130,6 +129,7 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
             }
             INFO("get all pblocks done");
         } else {
+            // FIXME: recusively get all pblocks when eh->eh_depth > 0
             ASSERT(0);
         }
     } else {
