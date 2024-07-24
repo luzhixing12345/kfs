@@ -1,29 +1,46 @@
 #!/bin/bash
 
-# 获取脚本所在的目录
+# Get the directory where the script is located
 DIR=$(dirname "$(readlink -f "$0")")
 
-# 设置颜色
+# Set colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
-NC='\033[0m' # 无颜色
+NC='\033[0m' # No color
 
-# 初始化计数器
+# Initialize counters
 total=0
 success=0
 fail=0
 
-# 列出脚本所在目录中所有符合格式的文件名,并按序号排序
+# Files to ignore
+# ignore_files=("012" "013")
+ignore_files=()
+
+# List all files in the directory that match the pattern and sort by number
 files=$(ls -1 "$DIR" | grep -E '^[0-9]{3}-.*\.sh$' | sort)
 
-# 计算总文件数
+# Calculate the total number of files
 file_count=$(echo "$files" | wc -l)
 
-# 计算显示总数所需的宽度
+# Calculate the width for displaying the total number
 width=${#file_count}
 
-# 依次执行每个脚本文件
+# Function to check if a file should be ignored
+should_ignore() {
+    for ignore in "${ignore_files[@]}"; do
+        if [[ $1 == $ignore* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Execute each script file
 for file in $files; do
+    if should_ignore "$file"; then
+        continue
+    fi
     total=$((total + 1))
     if bash "$DIR/$file" > /dev/null; then
         success=$((success + 1))
@@ -34,5 +51,5 @@ for file in $files; do
     fi
 done
 
-# 统计输出所有结果
+# Output all results
 printf "\nTotal: %d\nSuccess: %d\nFail: %d\n" "$total" "$success" "$fail"

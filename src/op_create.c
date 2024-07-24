@@ -60,7 +60,8 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // create a new dentry, and write back to disk
     char *dir_name = strrchr(path, '/') + 1;
     if (dentry_has_enough_space(de, dir_name) < 0) {
-        // TODO: extend new block
+        // FIXME: try to find a new block for dir
+        // TEST-CASE: [012]
         ERR("No space for new dentry");
         return -ENOSPC;
     }
