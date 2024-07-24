@@ -55,6 +55,7 @@ int op_mkdir(const char *path, mode_t mode) {
     char *dir_name = strrchr(path, '/') + 1;
     if (dentry_has_enough_space(de, dir_name) < 0) {
         // FIXME: try to find a new block for dir
+        // TEST-CASE: [012]
         ERR("No space for new dentry");
         return -ENOSPC;
     }

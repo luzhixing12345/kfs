@@ -49,6 +49,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
             BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
     } else {
         // FIXME: when write bytes > 4KB, should write multiple blocks
+        // TEST-CASE: [013]
         ASSERT(0);
     }
 
