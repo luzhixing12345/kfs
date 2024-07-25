@@ -21,9 +21,16 @@ int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx) {
         INFO("delete inode [%d]", inode_idx);
         // just set inode and data bitmap to 0 is ok
         bitmap_inode_set(inode_idx, 0);
-        struct pblock_arr p_arr;
-        inode_get_all_pblocks(inode, &p_arr);
-        bitmap_pblock_free(&p_arr);
+
+        if ((inode->i_mode & S_IFLNK) && EXT4_INODE_GET_SIZE(inode) <= sizeof(inode->i_block)) {
+            // if inode is symlink, we don't need to free pblocks
+            INFO("unlink a symlink inode %d", inode_idx);
+        } else {
+            // free all pblocks
+            struct pblock_arr p_arr;
+            inode_get_all_pblocks(inode, &p_arr);
+            bitmap_pblock_free(&p_arr);
+        }
 
         // write back dirty inode
         if (ICACHE_IS_DIRTY(inode)) {

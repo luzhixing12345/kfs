@@ -26,11 +26,10 @@ static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
 
     // a small perf for symbolic links
     // if the link destination fits in the inode, we copy it directly
-    if (inode_size <= EXT4_N_BLOCKS * sizeof(inode->i_block)) {
+    if (inode_size <= sizeof(inode->i_block)) {
         /* <= 60 bytes: Link destination fits in inode */
         DEBUG("read link destination fits in inode");
-        struct ext4_extent *ee = (struct ext4_extent *)((char *)(&inode->i_block) + sizeof(struct ext4_extent_header));
-        memcpy(buf, ee, inode_size);
+        memcpy(buf, &inode->i_block, inode_size);
     } else {
         // TODO: check
         if (inode_size >= bufsize) {

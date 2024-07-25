@@ -131,8 +131,11 @@ struct ext4_inode {
 #define EXT4_INODE_SET_GID(inode, gid) \
     ((inode)->i_gid = ((gid)&MASK_16), (inode)->osd2.linux2.l_i_gid_high = (((gid) >> 16) & MASK_16))
 
+#define EXT4_INODE_GET_SIZE(inode) (((uint64_t)(inode)->i_size_high << 32) | (inode)->i_size_lo)
 #define EXT4_INODE_SET_SIZE(inode, size) \
     ((inode)->i_size_lo = size & MASK_32, (inode)->i_size_high = (uint32_t)((((uint64_t)size) >> 32) & MASK_32))
+
+#define EXT4_INODE_GET_BLOCKS(inode) (((uint64_t)(inode)->osd2.linux2.l_i_blocks_high << 32) | (inode)->i_blocks_lo)
 #define EXT4_INODE_SET_BLOCKS(inode, blocks) \
     ((inode)->i_blocks_lo = blocks & MASK_32, (inode)->osd2.linux2.l_i_blocks_high = (uint32_t)(((uint64_t)blocks) >> 32))
 

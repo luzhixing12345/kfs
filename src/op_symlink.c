@@ -13,25 +13,27 @@
 #include "logging.h"
 #include "ops.h"
 
-static int inode_symlink_create(struct ext4_inode *inode, const char *path) {
+static int inode_symlink_create(struct ext4_inode *inode, uint32_t inode_idx, const char *path) {
     // a small perf for symbolic links
     // if the link len <= 60, save it in the inode
     int link_len = strlen(path);
     uint64_t pblock;
-    if (link_len <= EXT4_N_BLOCKS * sizeof(inode->i_block)) {
+    if (link_len <= sizeof(inode->i_block)) {
         // <= 60 bytes: Link destination fits in inode
         // free pblock and set eh->eh_entries to 0
         pblock = inode_get_data_pblock(inode, 0, NULL);
         INFO("free pblock %u", pblock);
         bitmap_pblock_set(pblock, 0);
-        struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
-        eh->eh_entries = 0;
-        struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
-        memcpy(ee, path, link_len);
+        memcpy(&inode->i_block, path, link_len);
     } else {
         // FIXME: create a new pblock for the symbolic link
         // TEST-CASE: [014]
-        ASSERT(0);
+        if (link_len > BLOCK_SIZE) {
+            ERR("link len %u > BLOCK_SIZE %u", link_len, BLOCK_SIZE);
+            return -EINVAL;
+        }
+        disk_write(BLOCKS2BYTES(inode_get_data_pblock(inode, 0, NULL)), link_len, (void *)path);
+        EXT4_INODE_SET_BLOCKS(inode, 1);
     }
     EXT4_INODE_SET_SIZE(inode, link_len);
     INFO("create symbolic inode %s", path);
@@ -57,7 +59,7 @@ int op_symlink(const char *from, const char *to) {
     inode_create(inode_idx, sym_mode, pblock, &inode);
 
     int err;
-    if ((err = inode_symlink_create(inode, from)) < 0) {
+    if ((err = inode_symlink_create(inode, inode_idx, from)) < 0) {
         return err;
     }
 
