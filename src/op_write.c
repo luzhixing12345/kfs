@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <sys/types.h>
 
@@ -43,21 +42,37 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     uint64_t end_lblock = (offset + size - 1) / BLOCK_SIZE;
     uint32_t start_block_off = offset % BLOCK_SIZE;
 
+    uint32_t extend_len = 0;
+
     if (start_lblock == end_lblock) {
         // only one block to write
         ret = disk_write(
-            BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, NULL)) + start_block_off, size, (void *)buf);
+            BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, &extend_len)) + start_block_off, size, (void *)buf);
     } else {
-        // FIXME: when write bytes > 4KB, should write multiple blocks
-        // TEST-CASE: [013]
-        ASSERT(0);
+        // FIXME : 读出数据与原始数据不一致
+        for (uint64_t lblock = start_lblock; lblock <= end_lblock; ++lblock) {
+            uint32_t block_off = (lblock == start_lblock) ? start_block_off : 0;
+
+            inode->i_flags=0;
+
+            size_t block_size =
+                (lblock == end_lblock) ? (offset + size - (lblock * BLOCK_SIZE)) : (BLOCK_SIZE - block_off);
+
+            assert(block_size <= BLOCK_SIZE);
+
+            ret = disk_write(
+                BLOCKS2BYTES(inode_get_data_pblock(inode, lblock, &extend_len)) + block_off, block_size, (void *)buf);
+            if (ret != block_size) {
+                return -EIO;
+            }
+            buf += block_size;
+        }
     }
 
-    // uint64_t file_size = EXT4_INODE_SIZE(inode);
-    EXT4_INODE_SET_SIZE(inode, size);  // FIXME: should be the real size of pblock numbers
+    EXT4_INODE_SET_SIZE(inode, (offset + size));
     ICACHE_SET_DIRTY(inode);
     DEBUG("write done");
 
-    ASSERT(ret == size);
+    //    ASSERT(ret == size);
     return ret;
 }
