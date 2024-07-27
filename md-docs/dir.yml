@@ -15,6 +15,7 @@ fs:
 impl:
 - mkfs: 1
 - design: 2
+- kfsd: 3
 device:
 - io: 1
 - disk: 2

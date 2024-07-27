@@ -16,13 +16,18 @@
 安装依赖
 
 ```bash
-sudo apt-get install fuse3 libfuse3-dev pkg-config
+sudo apt-get install fuse3 libfuse3-dev pkg-config libcap-ng-dev libseccomp-dev
 ```
 
 编译得到文件系统 `src/kfs` 和磁盘格式化程序 `mkfs/mkfs`
 
 ```bash
 make
+```
+
+```bash
+cd kfsd
+cargo build --release
 ```
 
 创建 `disk.img` 文件(1000 MiB), 并使用 `mkfs/mkfs` 将其格式化为 ext4 文件系统格式
