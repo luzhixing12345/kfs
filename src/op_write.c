@@ -1,12 +1,11 @@
-#include <string.h>
+#include <stddef.h>
 #include <sys/types.h>
 
-#include "bitmap.h"
 #include "cache.h"
-#include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_inode.h"
+#include "extents.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -24,6 +23,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     DEBUG("write path %s with size %d offset %d", path, size, offset);
 
     int ret = 0;
+    size_t remain = size;
 
     struct ext4_inode *inode;
     uint32_t inode_idx;
@@ -33,7 +33,7 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     }
 
     // check permissions
-    if (inode_check_permission(inode, READ) < 0 || inode_check_permission(inode, WRITE) < 0) {
+    if (inode_check_permission(inode, WRITE) < 0) {
         ERR("Permission denied");
         return -EACCES;
     }
@@ -48,23 +48,28 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
         // only one block to write
         ret = disk_write(
             BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, &extend_len)) + start_block_off, size, (void *)buf);
+        if (ret != size) {
+            return -EIO;
+        }
+        remain -= ret;
     } else {
         // FIXME : 读出数据与原始数据不一致
+        uint32_t extent_len = 0;
         for (uint64_t lblock = start_lblock; lblock <= end_lblock; ++lblock) {
             uint32_t block_off = (lblock == start_lblock) ? start_block_off : 0;
-
-            inode->i_flags=0;
-
             size_t block_size =
                 (lblock == end_lblock) ? (offset + size - (lblock * BLOCK_SIZE)) : (BLOCK_SIZE - block_off);
 
             assert(block_size <= BLOCK_SIZE);
 
-            ret = disk_write(
-                BLOCKS2BYTES(inode_get_data_pblock(inode, lblock, &extend_len)) + block_off, block_size, (void *)buf);
+            uint64_t pblock = extent_get_pblock(inode->i_block, lblock, &extent_len);
+
+            ret = disk_write(BLOCKS2BYTES(pblock) + block_off, block_size, (void *)buf);
+
             if (ret != block_size) {
                 return -EIO;
             }
+            remain -= ret;
             buf += block_size;
         }
     }
@@ -73,6 +78,6 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
     ICACHE_SET_DIRTY(inode);
     DEBUG("write done");
 
-    //    ASSERT(ret == size);
+    ASSERT(remain == 0);
     return ret;
 }
