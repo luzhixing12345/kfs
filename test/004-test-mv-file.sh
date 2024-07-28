@@ -40,7 +40,24 @@ if [ $? -ne 0 ]; then
     exit -1
 fi
 
-echo "Files moved successfully"
+text="the file has same_name, check if mv -f works"
+
+touch move_from_dir/same_name
+echo $text >> move_from_dir/same_name
+touch move_to_dir/same_name
+mv -f move_from_dir/same_name move_to_dir/same_name
+# Check if files are moved
+if [ -f move_to_dir/same_name ]; then
+    if [ "$(cat move_to_dir/same_name)" == "$text" ]; then
+        echo "Files moved successfully"
+    else
+        echo "Files not moved"
+        exit -1
+    fi
+else
+    echo "Files not moved"
+    exit -1
+fi
 
 # Cleanup
 rm -rf move_from_dir move_to_dir

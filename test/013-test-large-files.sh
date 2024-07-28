@@ -13,7 +13,7 @@ mkdir -p $TEST_DIR
 # Create files of different sizes
 echo "Creating files of various sizes..."
 for FILE_NAME in "${!FILE_SIZES[@]}"; do
-  dd if=/dev/zero of="$TEST_DIR/$FILE_NAME" bs=${FILE_SIZES[$FILE_NAME]} count=1
+  dd if=/dev/zero of="$TEST_DIR/$FILE_NAME" bs=${FILE_SIZES[$FILE_NAME]} count=1 > /dev/null
   if [[ ! -f "$TEST_DIR/$FILE_NAME" ]]; then
     echo "File creation failed: $TEST_DIR/$FILE_NAME"
     exit 1
