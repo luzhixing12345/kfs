@@ -17,13 +17,8 @@ static int inode_symlink_create(struct ext4_inode *inode, uint32_t inode_idx, co
     // a small perf for symbolic links
     // if the link len <= 60, save it in the inode
     int link_len = strlen(path);
-    uint64_t pblock;
     if (link_len <= sizeof(inode->i_block)) {
         // <= 60 bytes: Link destination fits in inode
-        // free pblock and set eh->eh_entries to 0
-        pblock = inode_get_data_pblock(inode, 0, NULL);
-        INFO("free pblock %u", pblock);
-        bitmap_pblock_set(pblock, 0);
         memcpy(&inode->i_block, path, link_len);
     } else {
         // FIXME: create a new pblock for the symbolic link
@@ -32,8 +27,9 @@ static int inode_symlink_create(struct ext4_inode *inode, uint32_t inode_idx, co
             ERR("link len %u > BLOCK_SIZE %u", link_len, BLOCK_SIZE);
             return -EINVAL;
         }
-        disk_write(BLOCKS2BYTES(inode_get_data_pblock(inode, 0, NULL)), link_len, (void *)path);
-        EXT4_INODE_SET_BLOCKS(inode, 1);
+        uint64_t pblock = bitmap_pblock_find(inode_idx, EXT4_INODE_PBLOCK_NUM);
+        inode_init_pblock(inode, pblock);
+        disk_write(BLOCKS2BYTES(pblock), link_len, (void *)path);
     }
     EXT4_INODE_SET_SIZE(inode, link_len);
     INFO("create symbolic inode %s", path);
@@ -47,8 +43,7 @@ int op_symlink(const char *from, const char *to) {
 
     // symbolic link do not increase link count!
     uint32_t inode_idx;
-    uint64_t pblock;
-    if (bitmap_find_space(0, &inode_idx, &pblock) < 0) {
+    if ((inode_idx = bitmap_inode_find(0)) == 0) {
         ERR("No free inode");
         return -ENOSPC;
     }
@@ -56,7 +51,7 @@ int op_symlink(const char *from, const char *to) {
     INFO("check ok");
     struct ext4_inode *inode;
     mode_t sym_mode = S_IFLNK | S_IRWXU | S_IRWXG | S_IRWXO;
-    inode_create(inode_idx, sym_mode, pblock, &inode);
+    inode_create(inode_idx, sym_mode, &inode);
 
     int err;
     if ((err = inode_symlink_create(inode, inode_idx, from)) < 0) {

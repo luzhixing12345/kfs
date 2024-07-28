@@ -74,7 +74,7 @@ $(SRC_PATH)/$(TARGET): $(OBJ)
 # ------------------------- #
 #          使用方法
 # ------------------------- #
-.PHONY: clean distclean lib release tar all test
+.PHONY: clean distclean lib release tar all test kfsd
 
 # make : 编译
 # make clean: 清除编译的中间文件
@@ -117,6 +117,11 @@ $(MKFS_SRC_PATH)/$(MKFS): $(MKFS_OBJ) $(MKFS_DEPENDS)
 
 $(MKFS_OBJ): $(MKFS_SRC)
 	$(CC) $(CFLAGS) -I$(SRC_PATH) -c $< -o $@
+
+SHARED_DIR = /etc
+
+kfsd:
+	cd kfsd && cargo build --release && cargo run -- --shared-dir $(SHARED_DIR) --socket-path /tmp/vhostqemu --cache auto
 
 dump:
 	$(DUMPFS) -f $(DISK_IMG)

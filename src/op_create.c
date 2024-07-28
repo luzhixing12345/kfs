@@ -35,16 +35,15 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // first find the parent directory of this path
     uint32_t parent_idx;
     struct ext4_inode *parent_inode;
-    
+
     if (inode_get_parent_by_path(path, &parent_inode, &parent_idx) < 0) {
         DEBUG("fail to get parent inode %d", parent_idx);
         return -ENOENT;
     }
-    
+
     // check if disk has space for a new inode
-    uint32_t dir_idx;
-    uint64_t dir_pblock_idx;
-    if (bitmap_find_space(parent_idx, &dir_idx, &dir_pblock_idx) < 0) {
+    uint32_t inode_idx;
+    if ((inode_idx = bitmap_inode_find(parent_idx)) == 0) {
         ERR("No space for new inode");
         return -ENOSPC;
     }
@@ -52,38 +51,37 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // check if the parent inode has empty space for a new dentry
     struct ext4_dir_entry_2 *de = dentry_last(parent_inode, parent_idx);
     if (de == NULL) {
-        ERR("parent inode has no dentry");
+        ERR("fail to find the last dentry");
         return -ENOENT;
     }
-    
-    INFO("check ok!");
+
     // create a new dentry, and write back to disk
-    char *dir_name = strrchr(path, '/') + 1;
-    if (dentry_has_enough_space(de, dir_name) < 0) {
+    char *file_name = strrchr(path, '/') + 1;
+    if (dentry_has_enough_space(de, file_name) < 0) {
         // FIXME: try to find a new block for dir
         // TEST-CASE: [012]
         ERR("No space for new dentry");
         return -ENOSPC;
     }
 
-    struct ext4_dir_entry_2 *new_de = dentry_create(de, dir_name, dir_idx, EXT4_FT_REG_FILE);
+    // create a new dentry in the parent directory
+    struct ext4_dir_entry_2 *new_de = dentry_create(de, file_name, inode_idx, EXT4_FT_REG_FILE);
     ICACHE_SET_LAST_DE(parent_inode, new_de);
     dcache_write_back();
 
     // create a new inode
     struct ext4_inode *inode;
-    inode_create(dir_idx, mode, dir_pblock_idx, &inode);
+    inode_create(inode_idx, mode, &inode);
     INFO("create new inode");
 
     // update inode and data bitmap
-    bitmap_inode_set(dir_idx, 1);
-    bitmap_pblock_set(dir_pblock_idx, 1);
+    bitmap_inode_set(inode_idx, 1);
     // just set bitmap and not write back to disk here for performance
     // write back bitmap to disk when fs is destory
     INFO("set inode and data bitmap");
 
     // update gdt
-    gdt_update(dir_idx);
+    // gdt_update(inode_idx);
 
     return 0;
 }

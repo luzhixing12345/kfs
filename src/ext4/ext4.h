@@ -30,8 +30,9 @@ extern struct bitmap d_bitmap;
 
 #define MALLOC_BLOCKS(__blks)   (malloc(BLOCKS2BYTES(__blks)))
 #define ALIGN_TO_BLOCKSIZE(__n) (ALIGN_TO(__n, BLOCK_SIZE))
-#define BIT0(bitmap, __n)       (!((bitmap)[(__n) / 8] & (1 << ((__n) % 8))))
-#define SET_BIT(bitmap_ptr, __n, __v)                              \
+#define BIT1(bitmap, __n)       (!(((uint8_t *)(bitmap))[(__n) / 8] & (1 << ((__n) % 8))))           // 1-bit 0
+#define BIT4(bitmap, __n)       (!(((uint8_t *)(bitmap))[(__n) / 2] & (0b1111 << ((__n) % 2 * 4))))  // 4-bit 0
+#define SET_BIT1(bitmap_ptr, __n, __v)                             \
     do {                                                           \
         uint8_t *byte_ptr = (uint8_t *)(bitmap_ptr) + ((__n) / 8); \
         if ((__v)) {                                               \
@@ -40,6 +41,16 @@ extern struct bitmap d_bitmap;
             *byte_ptr &= ~(1 << ((__n) % 8));                      \
         }                                                          \
     } while (0)
+#define SET_BIT4(bitmap_ptr, __n, __v)                             \
+    do {                                                           \
+        uint8_t *byte_ptr = (uint8_t *)(bitmap_ptr) + ((__n) / 2); \
+        if ((__v)) {                                               \
+            *byte_ptr |= (0b1111 << ((__n) % 2 * 4));              \
+        } else {                                                   \
+            *byte_ptr &= ~(0b1111 << ((__n) % 2 * 4));             \
+        }                                                          \
+    } while (0)
+
 /*
  * Macro-instructions used to manage group descriptors
  */

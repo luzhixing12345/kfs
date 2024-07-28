@@ -49,30 +49,22 @@ uint32_t bitmap_inode_find(uint32_t inode_idx);
 int bitmap_inode_set(uint32_t inode_idx, int is_used);
 
 /**
- * @brief find a free block in block bitmap
+ * @brief find n consecutive free blocks in block bitmap
  *
  * @param inode_idx
+ * @param n
  * @return uint64_t 0 if no free block
  */
-uint64_t bitmap_pblock_find(uint32_t inode_idx);
-
-/**
- * @brief find a free inode and data block for new inode
- *
- * @param parent_idx
- * @param inode_idx
- * @param pblock
- * @return int 0 if success, <0 if fail
- */
-int bitmap_find_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock);
+uint64_t bitmap_pblock_find(uint32_t inode_idx, uint64_t n);
 
 /**
  * @brief set block bitmap to 1/0
  *
  * @param block_idx
+ * @param len
  * @param is_used
  * @return int
  */
-int bitmap_pblock_set(uint64_t block_idx, int is_used);
+int bitmap_pblock_set(uint64_t block_idx, int len, int is_used);
 int bitmap_pblock_free(struct pblock_arr *arr);
 void gdt_update(uint32_t inode_idx);

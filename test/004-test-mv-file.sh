@@ -21,25 +21,14 @@ rmdir testdir
 
 #!/bin/bash
 
-# Create a directory to move from
-mkdir move_from_dir
-if [ $? -ne 0 ]; then
-    echo "Failed to create directory move_from_dir"
-    exit -1
-fi
+# Create a directory move from and to
+mkdir move_from_dir && mkdir move_to_dir
 
 # Create files to move
 touch move_from_dir/file1.txt
 touch move_from_dir/file2.txt
 if [ $? -ne 0 ]; then
     echo "Failed to create files in move_from_dir"
-    exit -1
-fi
-
-# Create a directory to move to
-mkdir move_to_dir
-if [ $? -ne 0 ]; then
-    echo "Failed to create directory move_to_dir"
     exit -1
 fi
 

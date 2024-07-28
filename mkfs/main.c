@@ -191,8 +191,8 @@ int main(int argc, char **argv) {
     //
     // TODO: actually ext4 has some special inode numbers(1-8), see ext4.h
     //       inode 1 and inode 2 is necessary, we don't care about others for now
-    SET_BIT(tmp_mem_area, 0, 1);  // inode 1 for bad block(don't exsist)
-    SET_BIT(tmp_mem_area, 1, 1);  // inode 2 for root block
+    SET_BIT1(tmp_mem_area, 0, 1);  // inode 1 for bad block(don't exsist)
+    SET_BIT1(tmp_mem_area, 1, 1);  // inode 2 for root block
     INFO("write back inode bitmap to disk");
     disk_write(BLOCKS2BYTES(i_bitmap_start), 2, tmp_mem_area);
 

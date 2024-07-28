@@ -6,6 +6,7 @@
 
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_inode.h"
 #include "logging.h"
 
 struct bitmap i_bitmap;  // inode bitmap
@@ -55,7 +56,7 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
     // for now, just simply find the first free inode in i_bitmap
     uint32_t new_inode_idx = 0;
     for (uint32_t i = 0; i < EXT4_INODES_PER_GROUP(sb); i++) {
-        if (BIT0(i_bitmap.group[group_idx].bitmap, i)) {
+        if (BIT1(i_bitmap.group[group_idx].bitmap, i)) {
             new_inode_idx = (group_idx * EXT4_INODES_PER_GROUP(sb)) + i + 1;
             INFO("found free inode %u", new_inode_idx);
             return new_inode_idx;
@@ -66,7 +67,7 @@ uint32_t bitmap_inode_find(uint32_t inode_idx) {
     for (uint32_t i = group_idx + 1; i != group_idx; i = (i + 1) % group_num) {
         DEBUG("finding free inode in group %u", i);
         for (uint32_t j = 0; j < EXT4_INODES_PER_GROUP(sb); j++) {
-            if (BIT0(i_bitmap.group[i].bitmap, j)) {
+            if (BIT1(i_bitmap.group[i].bitmap, j)) {
                 new_inode_idx = (i * EXT4_INODES_PER_GROUP(sb)) + j + 1;
                 INFO("found free inode %u", new_inode_idx);
                 return new_inode_idx;
@@ -85,20 +86,20 @@ int bitmap_inode_set(uint32_t inode_idx, int is_used) {
     uint32_t index = inode_idx % EXT4_INODES_PER_GROUP(sb);
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
     ASSERT(group_idx < group_num);
-    SET_BIT(i_bitmap.group[group_idx].bitmap, index, is_used);
+    SET_BIT1(i_bitmap.group[group_idx].bitmap, index, is_used);
     i_bitmap.group[group_idx].status = BITMAP_S_DIRTY;
     return 0;
 }
 
-uint64_t bitmap_pblock_find(uint32_t inode_idx) {
+uint64_t bitmap_pblock_find(uint32_t inode_idx, uint64_t n) {
     uint32_t group_idx = inode_idx / EXT4_INODES_PER_GROUP(sb);
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
     ASSERT(group_idx < group_num);
 
     uint64_t new_block_idx = 0;
-    for (uint32_t i = 0; i < EXT4_BLOCKS_PER_GROUP(sb); i++) {
-        if (BIT0(d_bitmap.group[group_idx].bitmap, i)) {
-            new_block_idx = (group_idx * EXT4_BLOCKS_PER_GROUP(sb)) + i;
+    for (uint32_t i = 0; i < EXT4_BLOCKS_PER_GROUP(sb) / EXT4_INODE_PBLOCK_NUM; i++) {
+        if (BIT4(d_bitmap.group[group_idx].bitmap, i)) {
+            new_block_idx = (group_idx * EXT4_BLOCKS_PER_GROUP(sb)) + i * EXT4_INODE_PBLOCK_NUM;
             INFO("found free block %u", new_block_idx);
             return new_block_idx;
         }
@@ -107,9 +108,9 @@ uint64_t bitmap_pblock_find(uint32_t inode_idx) {
     INFO("no free block in group %u", group_idx);
     for (uint32_t i = group_idx + 1; i != group_idx; i = (i + 1) % group_num) {
         DEBUG("finding free block in group %u", i);
-        for (uint32_t j = 0; j < EXT4_BLOCKS_PER_GROUP(sb); j++) {
-            if (BIT0(d_bitmap.group[i].bitmap, j)) {
-                new_block_idx = (i * EXT4_BLOCKS_PER_GROUP(sb)) + j;
+        for (uint32_t j = 0; j < EXT4_BLOCKS_PER_GROUP(sb) / EXT4_INODE_PBLOCK_NUM; j++) {
+            if (BIT4(d_bitmap.group[i].bitmap, j)) {
+                new_block_idx = (i * EXT4_BLOCKS_PER_GROUP(sb)) + j * EXT4_INODE_PBLOCK_NUM;
                 INFO("found free block %u", new_block_idx);
                 return new_block_idx;
             }
@@ -120,12 +121,17 @@ uint64_t bitmap_pblock_find(uint32_t inode_idx) {
     return UINT64_MAX;
 }
 
-int bitmap_pblock_set(uint64_t block_idx, int is_used) {
+int bitmap_pblock_set(uint64_t block_idx, int len, int is_used) {
     uint32_t group_idx = block_idx / EXT4_BLOCKS_PER_GROUP(sb);
     uint32_t index = block_idx % EXT4_BLOCKS_PER_GROUP(sb);
     uint32_t group_num = EXT4_N_BLOCK_GROUPS(sb);
     ASSERT(group_idx < group_num);
-    SET_BIT(d_bitmap.group[group_idx].bitmap, index, is_used);
+
+    if (len == EXT4_INODE_PBLOCK_NUM) {
+        SET_BIT4(d_bitmap.group[group_idx].bitmap, index / EXT4_INODE_PBLOCK_NUM, is_used);
+    } else {
+        ASSERT(0);
+    }
     d_bitmap.group[group_idx].status = BITMAP_S_DIRTY;
     return 0;
 }
@@ -137,38 +143,13 @@ int bitmap_pblock_free(struct pblock_arr *p_arr) {
         range = &p_arr->arr[i];
         for (uint16_t j = 0; j < range->len; j++) {
             INFO("free pblock %u", range->pblock + j);
-            bitmap_pblock_set(range->pblock + j, 0);
+            bitmap_pblock_set(range->pblock + j, 1, 0);
         }
     }
     if (p_arr->len) {
         free(p_arr->arr);
         INFO("free pblocks done");
     }
-    return 0;
-}
-
-int bitmap_find_space(uint32_t parent_idx, uint32_t *inode_idx, uint64_t *pblock) {
-    // find a valid inode_idx in GDT
-    *inode_idx = bitmap_inode_find(parent_idx);
-    if (*inode_idx == 0) {
-        ERR("No free inode");
-        return -ENOSPC;
-    }
-
-    if (!pblock) {
-        // short symlink inode does not need pblock, just return inode_idx
-        INFO("no pblock needed");
-        INFO("new dentry [inode:%u]", *inode_idx);
-    } else {
-        // find an empty data block
-        *pblock = bitmap_pblock_find(*inode_idx);
-        if (*pblock == UINT64_MAX) {
-            ERR("No free block");
-            return -ENOSPC;
-        }
-        INFO("new dentry [inode:%u] [pblock:%u]", *inode_idx, *pblock);
-    }
-
     return 0;
 }
 

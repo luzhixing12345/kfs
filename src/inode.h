@@ -38,15 +38,14 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode);
 int inode_find_free();
 
 /**
- * @brief create a new inode
+ * @brief create a new inode, with no pblock
  *
  * @param inode_idx
  * @param mode
- * @param pblock
  * @param inode
  * @return int
  */
-int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode);
+int inode_create(uint32_t inode_idx, mode_t mode, struct ext4_inode **inode);
 
 uint32_t inode_get_parent_idx_by_path(const char *path);
 int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32_t *inode_idx);
@@ -59,5 +58,5 @@ int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32
  */
 int inode_write_back(uint32_t inode_idx, struct ext4_inode *inode);
 int inode_mode2type(mode_t mode);
-
+int inode_init_pblock(struct ext4_inode *inode, uint64_t pblock_idx);
 #endif

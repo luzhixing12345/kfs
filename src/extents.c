@@ -49,7 +49,7 @@ static uint64_t extent_get_block_from_ees(struct ext4_extent *ee, uint32_t n_ee,
         return 0;
     } else {
         DEBUG("Block located [%d:%d]", block_ext_index, block_ext_offset);
-        return EXT4_EXT_PADDR(ee[block_ext_index]) + block_ext_offset;
+        return EXT4_EXT_GET_PADDR(ee[block_ext_index]) + block_ext_offset;
     }
 }
 

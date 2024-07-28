@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+#include "bitmap.h"
 #include "cache.h"
 #include "disk.h"
 #include "ext4/ext4.h"
@@ -46,8 +47,15 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
 
     if (start_lblock == end_lblock) {
         // only one block to write
-        ret = disk_write(
-            BLOCKS2BYTES(inode_get_data_pblock(inode, start_lblock, &extend_len)) + start_block_off, size, (void *)buf);
+        uint64_t pblock_idx;
+        if (EXT4_INODE_GET_BLOCKS(inode) == 0) {
+            DEBUG("inode %d has no blocks", inode_idx);
+            pblock_idx = bitmap_pblock_find(inode_idx, EXT4_INODE_PBLOCK_NUM);
+            inode_init_pblock(inode, pblock_idx);
+        } else {
+            pblock_idx = inode_get_data_pblock(inode, start_lblock, &extend_len);
+        }
+        ret = disk_write(BLOCKS2BYTES(pblock_idx) + start_block_off, size, (void *)buf);
         if (ret != size) {
             return -EIO;
         }

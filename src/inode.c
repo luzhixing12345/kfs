@@ -25,6 +25,7 @@
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_extents.h"
+#include "ext4/ext4_inode.h"
 #include "extents.h"
 #include "fuse.h"
 #include "logging.h"
@@ -114,7 +115,7 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
         // inode use ext4 extents
         struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
         struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
-        
+
         if (eh->eh_depth == 0) {
             pblock_arr->len = eh->eh_entries;
             if (pblock_arr->len == 0) {
@@ -124,7 +125,7 @@ int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_ar
             ASSERT(eh->eh_magic == EXT4_EXT_MAGIC);
             pblock_arr->arr = malloc(pblock_arr->len * sizeof(struct pblock_range));
             for (int i = 0; i < pblock_arr->len; i++) {
-                pblock_arr->arr[i].pblock = EXT4_EXT_PADDR(ee[i]);
+                pblock_arr->arr[i].pblock = EXT4_EXT_GET_PADDR(ee[i]);
                 pblock_arr->arr[i].len = ee[i].ee_len;
             }
             INFO("get all pblocks done");
@@ -334,7 +335,7 @@ int inode_get_parent_by_path(const char *path, struct ext4_inode **inode, uint32
     return inode_get_by_number(parent_idx, inode);
 }
 
-int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode **inode) {
+int inode_create(uint32_t inode_idx, mode_t mode, struct ext4_inode **inode) {
     *inode = icache_insert(inode_idx, 0);
     memset(*inode, 0, sizeof(struct ext4_inode));
     (*inode)->i_mode = mode;
@@ -358,21 +359,14 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     // ext4 extent header in block[0-3]
     struct ext4_extent_header *eh = (struct ext4_extent_header *)((*inode)->i_block);
     eh->eh_magic = EXT4_EXT_MAGIC;
-    eh->eh_entries = 1;
+    eh->eh_entries = 0;
     eh->eh_max = EXT4_EXT_LEAF_EH_MAX;
     eh->eh_depth = 0;
     eh->eh_generation = EXT4_EXT_EH_GENERATION;
 
     // new inode has one ext4 extent
     struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
-    ee->ee_block = 0;
-    ee->ee_len = 1;
-    EXT4_EXT_SET_PADDR(ee, pblock);
-    INFO("hi[%u] lo[%u]", ee->ee_start_hi, ee->ee_start_lo);
-
-    // set other 3 ext extents to 0
-    ee++;
-    memset(ee, 0, 3 * sizeof(struct ext4_extent));
+    memset(ee, 0, 4 * sizeof(struct ext4_extent));
     ICACHE_SET_DIRTY(*inode);  // mark new inode as dirty
     INFO("new inode %u created", inode_idx);
     return 0;
@@ -396,4 +390,19 @@ int inode_mode2type(mode_t mode) {
     } else {
         return EXT4_FT_UNKNOWN;
     }
+}
+
+int inode_init_pblock(struct ext4_inode *inode, uint64_t pblock_idx) {
+    DEBUG("init inode with pblock [%d - %d]", pblock_idx, pblock_idx + EXT4_INODE_PBLOCK_NUM - 1);
+    struct ext4_extent_header *eh = (struct ext4_extent_header *)inode->i_block;
+    eh->eh_entries = 1;
+    struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
+
+    ee->ee_block = 0;  // logical block 0
+    EXT4_EXT_SET_PADDR(ee, pblock_idx);
+    ee->ee_len = EXT4_INODE_PBLOCK_NUM;
+
+    EXT4_INODE_SET_BLOCKS(inode, EXT4_INODE_PBLOCK_NUM);
+    ICACHE_SET_DIRTY(inode);
+    return 0;
 }
