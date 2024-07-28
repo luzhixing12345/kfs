@@ -93,6 +93,10 @@ int disk_open(const char *path) {
     return 0;
 }
 
+int disk_close() {
+    return close(disk_fd);
+}
+
 uint64_t disk_size() {
     struct stat st;
     if (fstat(disk_fd, &st) < 0) {

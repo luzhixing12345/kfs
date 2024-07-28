@@ -68,4 +68,5 @@ void op_destory(void *data) {
     disk_write(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
     INFO("write back super block done");
     INFO("ext4 fuse fs destory done");
+    disk_close();
 }

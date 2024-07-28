@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "bitmap.h"
+#include "common.h"
 #include "config.h"
 #include "disk.h"
 #include "ext4/ext4.h"
@@ -19,7 +20,7 @@
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
 
-int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
+int root_inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
     memset(inode, 0, sizeof(struct ext4_inode));
     inode->i_mode = mode;
     time_t now = time(NULL);
@@ -51,7 +52,7 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     // new inode has one ext4 extent
     struct ext4_extent *ee = (struct ext4_extent *)(eh + 1);
     ee->ee_block = 0;
-    ee->ee_len = 1;
+    ee->ee_len = 4;
     EXT4_EXT_SET_PADDR(ee, pblock);
     INFO("hi[%u] lo[%u]", ee->ee_start_hi, ee->ee_start_lo);
 
@@ -199,7 +200,13 @@ int main(int argc, char **argv) {
     // control blocks alloced in group0
     uint64_t alloced_block_cnt = inode_table_start + group_count * inode_table_len;
     uint64_t data_block_start = alloced_block_cnt;
-    alloced_block_cnt++;
+    alloced_block_cnt = ALIGN_TO(alloced_block_cnt, 4);
+    alloced_block_cnt += EXT4_INODE_PBLOCK_NUM; // root inode pblock number
+    if (alloced_block_cnt > BLOCK_SIZE) {
+        // FIXME: calculate the size when this error happen
+        WARNING("alloced block cnt is too large: %lu", alloced_block_cnt);
+        return EXIT_FAILURE;
+    }
 
     memset(tmp_mem_area, 0xff, alloced_block_cnt / 8);
     if (alloced_block_cnt % 8 != 0) {
@@ -215,7 +222,7 @@ int main(int argc, char **argv) {
     mode_t mode = umask(0) ^ 0777;
 
     INFO("create root inode");
-    inode_create(EXT4_ROOT_INO, S_IFDIR | mode, data_block_start, inode);
+    root_inode_create(EXT4_ROOT_INO, S_IFDIR | mode, data_block_start, inode);
 
     INFO("write back root inode to disk");
     disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_ROOT_INO - 1) * MKFS_EXT4_INODE_SIZE,
