@@ -47,7 +47,8 @@ int op_link(const char *from, const char *to) {
 
     struct ext4_dir_entry_2 *last_de = dentry_last(to_dir_inode, to_dir_inode_idx);
     char *name = strrchr(to, '/') + 1;
-    if (dentry_has_enough_space(last_de, name) < 0) {
+    uint64_t name_len = strlen(name);
+    if (dentry_has_enough_space(last_de, name_len) < 0) {
         ERR("No space for new dentry");
         return -ENOSPC;
     }

@@ -16,6 +16,7 @@
 
 #include "disk.h"
 #include "ext4/ext4.h"
+#include "ext4/ext4_dentry.h"
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
@@ -52,7 +53,7 @@ int cache_init() {
     return 0;
 }
 
-void dcache_update(struct ext4_inode *inode, uint32_t lblock) {
+void dcache_load_lblock(struct ext4_inode *inode, uint32_t lblock) {
     uint64_t pblock = inode_get_data_pblock(inode, lblock, NULL);
     disk_read_block(pblock, dcache->buf);
     dcache->lblock = lblock;
@@ -77,7 +78,7 @@ void dcache_init(struct ext4_inode *inode, uint32_t inode_idx) {
 
     dcache->inode_idx = inode_idx;
     DEBUG("dctx preload for inode %u", inode_idx);
-    dcache_update(inode, 0);
+    dcache_load_lblock(inode, 0);
 }
 
 int dcache_write_back() {
@@ -164,7 +165,7 @@ struct decache_entry *decache_find(const char **path) {
 
     do {
         *path = skip_trailing_backslash(*path);
-        uint8_t path_len = get_path_token_len(*path);
+        uint64_t path_len = get_path_token_len(*path);
         ret = next;
 
         if (path_len == 0) {
@@ -184,13 +185,13 @@ struct decache_entry *decache_find(const char **path) {
 // Lookup a cache entry for a given file name.  Return value is a struct pointer
 // that can be used to both obtain the inode number and insert further child
 // entries.
-struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, int namelen) {
+struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, uint64_t namelen) {
     /* TODO: Prune entries by using the LRU counter */
     if (parent == NULL) {
         parent = root;
     }
 
-    if (!parent->childs) {
+    if (!parent->childs || namelen > EXT4_NAME_LEN) {
         ASSERT(parent->count == 0);
         DEBUG("directory has no cached entry");
         return NULL;

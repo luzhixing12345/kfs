@@ -84,7 +84,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
     } else {
         // old ext2/3 style, for backward compatibility
         // direct block, indirect block, dindirect block, tindirect block
-        ASSERT(lblock <= BYTES2BLOCKS(EXT4_INODE_SIZE(inode)));
+        ASSERT(lblock <= BYTES2BLOCKS(EXT4_INODE_GET_SIZE(inode)));
 
         if (lblock < EXT4_NDIR_BLOCKS) {
             return inode->i_block[lblock];
@@ -110,7 +110,7 @@ uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32
 
 // TODO: ext4 extents data pblock
 int inode_get_all_pblocks(struct ext4_inode *inode, struct pblock_arr *pblock_arr) {
-    // uint64_t inode_block_count = EXT4_INODE_SIZE(inode);
+    // uint64_t inode_block_count = EXT4_INODE_GET_SIZE(inode);
     if (inode->i_flags & EXT4_EXTENTS_FL) {
         // inode use ext4 extents
         struct ext4_extent_header *eh = (struct ext4_extent_header *)&inode->i_block;
@@ -162,8 +162,8 @@ int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     return 0;
 }
 
-uint8_t get_path_token_len(const char *path) {
-    uint8_t len = 0;
+uint64_t get_path_token_len(const char *path) {
+    uint64_t len = 0;
     while (path[len] != '/' && path[len]) {
         len++;
     }
@@ -186,7 +186,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
         struct ext4_dir_entry_2 *de = NULL;
 
         path = skip_trailing_backslash(path);
-        uint8_t path_len = get_path_token_len(path);
+        uint64_t path_len = get_path_token_len(path);
 
         if (path_len == 0) {
             // Reached the end of the path
@@ -266,8 +266,8 @@ int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     struct fuse_context *cntx = fuse_get_context();  //获取当前用户的上下文
     uid_t uid = cntx->uid;
     gid_t gid = cntx->gid;
-    uid_t i_uid = EXT4_INODE_UID(inode);
-    gid_t i_gid = EXT4_INODE_GID(inode);
+    uid_t i_uid = EXT4_INODE_GET_UID(inode);
+    gid_t i_gid = EXT4_INODE_GET_GID(inode);
     DEBUG("check inode & user permission on op mode %d", mode);
     DEBUG("inode uid %d, inode gid %d", i_uid, i_gid);
     DEBUG("user uid %d, user gid %d", uid, gid);

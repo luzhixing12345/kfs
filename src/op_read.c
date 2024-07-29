@@ -21,7 +21,7 @@
 
 /* We truncate the read size if it exceeds the limits of the file. */
 static size_t truncate_size(struct ext4_inode *inode, size_t size, size_t offset) {
-    uint64_t inode_size = EXT4_INODE_SIZE(inode);
+    uint64_t inode_size = EXT4_INODE_GET_SIZE(inode);
 
     DEBUG(
         "inode size = %lu"

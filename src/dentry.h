@@ -37,10 +37,10 @@ int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name);
  * @brief whether the dentry has enough space for a new dentry
  *
  * @param de
- * @param name
+ * @param name_len
  * @return int
  */
-int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name);
+int dentry_has_enough_space(struct ext4_dir_entry_2 *de, uint64_t name_len);
 
 /**
  * @brief find dentry by name
