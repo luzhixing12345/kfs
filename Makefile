@@ -16,6 +16,7 @@ CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
 
 CFLAGS += $(shell pkg-config --cflags $(THIRD_LIB))
 LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))
+CFLAGS += -I$(INCLUDE_PATH)
 
 TEST_PATH = test
 TMP_PATH = tmp
