@@ -17,6 +17,7 @@
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
+#include "ctl.h"
 
 /** Get file attributes.
  *
@@ -31,7 +32,7 @@
  */
 int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     DEBUG("getattr(%s)", path);
-
+    
     struct ext4_inode *inode;
     uint32_t inode_idx;
     memset(stbuf, 0, sizeof(struct stat));  // clear the struct

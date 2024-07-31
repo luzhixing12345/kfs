@@ -184,3 +184,33 @@ void gdt_update(uint32_t inode_idx) {
          used_dirs,
          unused_inodes);
 }
+
+int bitmap_inode_count(uint64_t *used_inode_num, uint64_t *free_inode_num) {
+    *used_inode_num = 0;
+    *free_inode_num = 0;
+    for (uint32_t i = 0; i < EXT4_N_BLOCK_GROUPS(sb); i++) {
+        for (uint32_t j = 0; j < EXT4_INODES_PER_GROUP(sb); j++) {
+            if (BIT1(i_bitmap.group[i].bitmap, j)) {
+                *used_inode_num += 1;
+            } else {
+                *free_inode_num += 1;
+            }
+        }
+    }
+    return 0;
+}
+
+int bitmap_pblock_count(uint64_t *used_pblock_num, uint64_t *free_pblock_num) {
+    *used_pblock_num = 0;
+    *free_pblock_num = 0;
+    for (uint32_t i = 0; i < EXT4_N_BLOCK_GROUPS(sb); i++) {
+        for (uint32_t j = 0; j < EXT4_BLOCKS_PER_GROUP(sb); j++) {
+            if (BIT1(d_bitmap.group[i].bitmap, j)) {
+                *used_pblock_num += 1;
+            } else {
+                *free_pblock_num += 1;
+            }
+        }
+    }
+    return 0;
+}

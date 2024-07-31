@@ -13,6 +13,7 @@
 #include <sys/types.h>
 
 #include "common.h"
+#include "ctl.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "inode.h"
@@ -102,6 +103,10 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
     if (inode_get_by_number(fi->fh, &inode) < 0) {
         DEBUG("fail to get inode %d", fi->fh);
         return -ENOENT;
+    }
+
+    if (ctl_check(fi->fh)) {
+        return ctl_status(buf);
     }
 
     // Truncate the read size if it exceeds the limits of the file.

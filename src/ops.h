@@ -35,3 +35,5 @@ off_t op_lseek(const char *, off_t off, int whence, struct fuse_file_info *);
 
 // in op_unlink.c
 int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx);
+// in ctl.c
+int sb_status(char *buf);

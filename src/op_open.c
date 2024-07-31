@@ -12,6 +12,7 @@
 #include <stdlib.h>
 
 #include "common.h"
+#include "ctl.h"
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"

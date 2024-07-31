@@ -4,17 +4,23 @@
 CC = gcc
 TARGET = kfsctl
 
-CFLAGS = -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
+THIRD_LIB = fuse3
+CFLAGS += $(shell pkg-config --cflags $(THIRD_LIB))
+LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))
 
-ifneq ($(THIRD_LIB),)
-CFLAGS += -I$(THIRD_LIB)/include
-LDFLAGS += -L$(THIRD_LIB)/lib
-endif
+CSTD = -std=gnu2x
+CFLAGS = $(CSTD)
+CFLAGS += -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
+CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
+
+CFLAGS += -I../src
 
 rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
 						$(filter $2, $d))
 
-SRC = $(call rwildcard, xbox, %.c) main.c
+SRC := $(shell find . -name '*.c') $(shell find ../src -name '*.c')
+# exclude main.c
+SRC := $(filter-out ../src/main.c,$(SRC))
 OBJ = $(SRC:.c=.o)
 all: $(TARGET)
 

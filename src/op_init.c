@@ -8,6 +8,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "bitmap.h"
@@ -25,11 +26,21 @@ unsigned fuse_capable;
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
 
+int sb_status(char *buf) {
+    int buf_cnt = 0;
+    buf_cnt += sprintf(buf + buf_cnt, "  BLOCK SIZE:\t\t %lu\n", EXT4_BLOCK_SIZE(sb));
+    buf_cnt += sprintf(buf + buf_cnt, "  N BLOCK GROUPS:\t %lu\n", EXT4_N_BLOCK_GROUPS(sb));
+    buf_cnt += sprintf(buf + buf_cnt, "  INODE SIZE:\t\t %i\n", EXT4_S_INODE_SIZE(sb));
+    buf_cnt += sprintf(buf + buf_cnt, "  INODES PER GROUP:\t %i\n", EXT4_INODES_PER_GROUP(sb));
+    buf_cnt += sprintf(buf + buf_cnt, "  BLOCKS PER GROUP:\t %i\n", EXT4_BLOCKS_PER_GROUP(sb));
+    return buf_cnt;
+}
+
 int super_fill(void) {
     disk_read(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
 
-    INFO("BLOCK SIZE: %i", EXT4_BLOCK_SIZE(sb));
-    INFO("N BLOCK GROUPS: %i", EXT4_N_BLOCK_GROUPS(sb));
+    INFO("BLOCK SIZE: %lu", EXT4_BLOCK_SIZE(sb));
+    INFO("N BLOCK GROUPS: %lu", EXT4_N_BLOCK_GROUPS(sb));
     INFO("INODE SIZE: %i", EXT4_S_INODE_SIZE(sb));
     INFO("INODES PER GROUP: %i", EXT4_INODES_PER_GROUP(sb));
     INFO("BLOCKS PER GROUP: %i", EXT4_BLOCKS_PER_GROUP(sb));

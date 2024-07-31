@@ -67,4 +67,8 @@ uint64_t bitmap_pblock_find(uint32_t inode_idx, uint64_t n);
  */
 int bitmap_pblock_set(uint64_t block_idx, int len, int is_used);
 int bitmap_pblock_free(struct pblock_arr *arr);
+
+int bitmap_inode_count(uint64_t *used_inode_num, uint64_t *free_inode_num);
+int bitmap_pblock_count(uint64_t *used_pblock_num, uint64_t *free_pblock_num);
+
 void gdt_update(uint32_t inode_idx);

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include "bitmap.h"
@@ -12,6 +13,7 @@
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_basic.h"
+#include "ext4/ext4_dentry.h"
 #include "ext4/ext4_extents.h"
 #include "ext4/ext4_inode.h"
 #include "ext4/ext4_super.h"
@@ -20,7 +22,9 @@
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
 
-int root_inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
+const char *KFSCTL_PATH = ".kfsctl";
+
+int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_inode *inode) {
     memset(inode, 0, sizeof(struct ext4_inode));
     inode->i_mode = mode;
     time_t now = time(NULL);
@@ -35,7 +39,7 @@ int root_inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct e
 
     // new created inode has 0 block and 0 size
     EXT4_INODE_SET_BLOCKS(inode, 0);
-    uint64_t inode_size = mode & S_IFDIR ? BLOCK_SIZE : 0;
+    uint64_t inode_size = mode & S_IFDIR ? BLOCK_SIZE : EXT4_INODE_PBLOCK_NUM * BLOCK_SIZE;
     EXT4_INODE_SET_SIZE(inode, inode_size);
 
     // enable ext4 extents flag
@@ -199,9 +203,10 @@ int main(int argc, char **argv) {
 
     // control blocks alloced in group0
     uint64_t alloced_block_cnt = inode_table_start + group_count * inode_table_len;
-    uint64_t data_block_start = alloced_block_cnt;
     alloced_block_cnt = ALIGN_TO(alloced_block_cnt, 4);
-    alloced_block_cnt += EXT4_INODE_PBLOCK_NUM; // root inode pblock number
+
+    uint64_t data_block_start = alloced_block_cnt;
+    alloced_block_cnt += EXT4_INODE_PBLOCK_NUM * 2;  // root inode pblock + kfsctl inode pblock
     if (alloced_block_cnt > BLOCK_SIZE) {
         // FIXME: calculate the size when this error happen
         WARNING("alloced block cnt is too large: %lu", alloced_block_cnt);
@@ -219,13 +224,18 @@ int main(int argc, char **argv) {
 
     // create inode
     struct ext4_inode *inode = (struct ext4_inode *)tmp_mem_area;
-    mode_t mode = umask(0) ^ 0777;
+    mode_t mode = 0755;
 
     INFO("create root inode");
-    root_inode_create(EXT4_ROOT_INO, S_IFDIR | mode, data_block_start, inode);
+    inode_create(EXT4_ROOT_INO, S_IFDIR | mode, data_block_start, inode);
 
     INFO("write back root inode to disk");
     disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_ROOT_INO - 1) * MKFS_EXT4_INODE_SIZE,
+               MKFS_EXT4_INODE_SIZE,
+               tmp_mem_area);
+
+    inode_create(EXT4_USR_QUOTA_INO, S_IFREG | mode, data_block_start + EXT4_INODE_PBLOCK_NUM, inode);
+    disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_USR_QUOTA_INO - 1) * MKFS_EXT4_INODE_SIZE,
                MKFS_EXT4_INODE_SIZE,
                tmp_mem_area);
 
@@ -251,11 +261,20 @@ int main(int argc, char **argv) {
     // ..
     struct ext4_dir_entry_2 *de_dot2 = (struct ext4_dir_entry_2 *)(tmp_mem_area + EXT4_DE_DOT_SIZE);
     de_dot2->inode_idx = EXT4_ROOT_INO;
-    de_dot2->rec_len = BLOCK_SIZE - EXT4_DE_DOT_SIZE - EXT4_DE_TAIL_SIZE;
+    de_dot2->rec_len = EXT4_DE_DOT_SIZE;
     de_dot2->name_len = 2;
     de_dot2->file_type = EXT4_FT_DIR;
     strncpy(de_dot2->name, "..", 2);
     de_dot2->name[2] = 0;
+
+    // .kfsctl
+    struct ext4_dir_entry_2 *de_kfsctl = (struct ext4_dir_entry_2 *)(tmp_mem_area + EXT4_DE_DOT_SIZE * 2);
+    de_kfsctl->inode_idx = EXT4_USR_QUOTA_INO;
+    de_kfsctl->rec_len = BLOCK_SIZE - EXT4_DE_DOT_SIZE * 2 - EXT4_DE_TAIL_SIZE;
+    de_kfsctl->name_len = strlen(KFSCTL_PATH);
+    de_kfsctl->file_type = EXT4_FT_REG_FILE;
+    strncpy(de_kfsctl->name, KFSCTL_PATH, strlen(KFSCTL_PATH));
+    de_kfsctl->name[strlen(KFSCTL_PATH)] = 0;
 
     INFO("create root dentry done");
     disk_write_block(data_block_start, tmp_mem_area);

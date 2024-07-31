@@ -62,7 +62,10 @@ CFLAGS+=-g$(DEBUG_LEVEL)
 OPTIM_LEVEL = 0
 endif
 
-all: $(SRC_PATH)/$(TARGET) $(MKFS_SRC_PATH)/$(MKFS)
+KFSCTL_SRC_PATH = kfsctl
+KFSCTL = kfsctl
+
+all: $(SRC_PATH)/$(TARGET) $(MKFS_SRC_PATH)/$(MKFS) $(KFSCTL_SRC_PATH)/$(KFSCTL)
 
 debug: all
 
@@ -119,6 +122,9 @@ $(MKFS_SRC_PATH)/$(MKFS): $(MKFS_OBJ) $(MKFS_DEPENDS)
 $(MKFS_OBJ): $(MKFS_SRC)
 	$(CC) $(CFLAGS) -I$(SRC_PATH) -c $< -o $@
 
+$(KFSCTL_SRC_PATH)/$(KFSCTL): $(SRC) $(KFSCTL_SRC_PATH)/*.c
+	$(MAKE) -C $(KFSCTL_SRC_PATH)
+
 SHARED_DIR = /etc
 
 kfsd:
@@ -136,8 +142,9 @@ test:
 clean:
 	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)
 
-mkfs_clean:
-	rm -f $(MKFS_OBJ) $(MKFS_SRC_PATH)/$(MKFS)
+distclean:
+	rm -f $(OBJ) $(MKFS_OBJ) $(MKFS_SRC_PATH)/$(MKFS)
+	$(MAKE) -C $(KFSCTL_SRC_PATH) clean
 
 release:
 	$(MAKE) -j4
@@ -145,9 +152,8 @@ release:
 	@cp $(EXE) $(RELEASE)/ 
 	tar -cvf $(TARGET).tar $(RELEASE)/
 
-distclean:
-	rm -r $(RELEASE) $(RELEASE).tar
-	rm -r compile_commands.json
+c:
+	cd tmp && ../$(KFSCTL_SRC_PATH)/kfsctl status
 
 help:
 	@echo -e ""

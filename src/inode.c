@@ -21,6 +21,7 @@
 #include "bitmap.h"
 #include "cache.h"
 #include "common.h"
+#include "ctl.h"
 #include "dentry.h"
 #include "disk.h"
 #include "ext4/ext4.h"

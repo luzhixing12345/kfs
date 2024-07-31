@@ -6,6 +6,7 @@ DIR=$(dirname "$(readlink -f "$0")")
 # Set colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+PURPLE='\033[0;35m'
 NC='\033[0m' # No color
 
 # Initialize counters
@@ -14,8 +15,8 @@ success=0
 fail=0
 
 # Files to ignore
-# ignore_files=("012" "013")
-ignore_files=()
+ignore_files=("012" "013" "014" "015")
+# ignore_files=()
 
 # List all files in the directory that match the pattern and sort by number
 files=$(ls -1 "$DIR" | grep -E '^[0-9]{3}-.*\.sh$' | sort)
@@ -30,6 +31,7 @@ width=${#file_count}
 should_ignore() {
     for ignore in "${ignore_files[@]}"; do
         if [[ $1 == $ignore* ]]; then
+            printf "[${PURPLE}skip${NC}] %s\n" "$file"
             return 0
         fi
     done
