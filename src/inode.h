@@ -19,7 +19,7 @@
 
 #define IS_PATH_SEPARATOR(__c)  ((__c) == '/')
 
-uint8_t get_path_token_len(const char *path);
+uint64_t get_path_token_len(const char *path);
 const char *skip_trailing_backslash(const char *path);
 
 uint64_t inode_get_data_pblock(struct ext4_inode *inode, uint32_t lblock, uint32_t *extent_len);

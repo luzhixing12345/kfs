@@ -55,7 +55,8 @@ int op_mkdir(const char *path, mode_t mode) {
 
     // create a new dentry, and write back to disk
     char *dir_name = strrchr(path, '/') + 1;
-    if (dentry_has_enough_space(de, dir_name) < 0) {
+    uint64_t name_len = strlen(dir_name);
+    if (dentry_has_enough_space(de, name_len) < 0) {
         // FIXME: try to find a new block for dir
         // TEST-CASE: [012]
         ERR("No space for new dentry");
@@ -63,7 +64,7 @@ int op_mkdir(const char *path, mode_t mode) {
     }
 
     // create a new dentry in the parent directory
-    struct ext4_dir_entry_2 *new_de = dentry_create(de, dir_name, dir_idx, EXT4_FT_DIR);
+    struct ext4_dir_entry_2 *new_de = dentry_create(de, dir_name, dir_idx, inode_mode2type(mode));
     ICACHE_SET_LAST_DE(parent_inode, new_de);
     dcache_write_back();
 

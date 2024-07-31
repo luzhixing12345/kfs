@@ -8,6 +8,7 @@
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_dentry.h"
+#include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
@@ -31,6 +32,12 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     // - mkdir need parent inode.i_links_count++
 
     DEBUG("create path %s with mode %o", path, mode);
+    char *file_name = strrchr(path, '/') + 1;
+    uint64_t name_len = strlen(file_name);
+    if (name_len > EXT4_NAME_LEN) {
+        ERR("name too long");
+        return -ENAMETOOLONG;
+    }
 
     // first find the parent directory of this path
     uint32_t parent_idx;
@@ -56,18 +63,45 @@ int op_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     }
 
     // create a new dentry, and write back to disk
-    char *file_name = strrchr(path, '/') + 1;
-    if (dentry_has_enough_space(de, file_name) < 0) {
+    
+    if (dentry_has_enough_space(de, name_len) < 0) {
         // FIXME: try to find a new block for dir
         // TEST-CASE: [012]
-        ERR("No space for new dentry");
-        return -ENOSPC;
-    }
+        INFO("across block boundary");
+        de->rec_len += sizeof(struct ext4_dir_entry_tail);
+        dcache_write_back();
 
-    // create a new dentry in the parent directory
-    struct ext4_dir_entry_2 *new_de = dentry_create(de, file_name, inode_idx, EXT4_FT_REG_FILE);
-    ICACHE_SET_LAST_DE(parent_inode, new_de);
-    dcache_write_back();
+        uint64_t block_num = EXT4_INODE_GET_BLOCKS(parent_inode);
+        uint64_t next_lblock = dcache->lblock + 1;
+        if (block_num > next_lblock) {
+            dcache_load_lblock(parent_inode, next_lblock);
+            // create dentry tail
+            struct ext4_dir_entry_tail *de_tail =
+                (struct ext4_dir_entry_tail *)(dcache->buf + BLOCK_SIZE - EXT4_DE_TAIL_SIZE);
+            de_tail->det_reserved_zero1 = 0;
+            de_tail->det_rec_len = EXT4_DE_TAIL_SIZE;
+            de_tail->det_reserved_zero2 = 0;
+            de_tail->det_reserved_ft = EXT4_FT_DIR_CSUM;
+            de_tail->det_checksum = 0;  // TODO: checksum
+
+            de = (struct ext4_dir_entry_2 *)dcache->buf;
+            de->rec_len = BLOCK_SIZE - EXT4_DE_TAIL_SIZE;
+            de->inode_idx = inode_idx;
+            de->name_len = name_len;
+            de->file_type = inode_mode2type(mode);
+            memcpy(de->name, file_name, name_len);
+            de->name[name_len] = '\0';
+            dcache_write_back();
+            ICACHE_SET_LAST_DE(parent_inode, NULL);
+        } else {
+            ASSERT(0);
+        }
+    } else {
+        // create a new dentry in the parent directory
+        struct ext4_dir_entry_2 *new_de = dentry_create(de, file_name, inode_idx, inode_mode2type(mode));
+        ICACHE_SET_LAST_DE(parent_inode, new_de);
+        dcache_write_back();
+    }
 
     // create a new inode
     struct ext4_inode *inode;

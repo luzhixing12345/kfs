@@ -11,7 +11,7 @@
 
 struct decache_entry;
 struct decache_entry *decache_insert(struct decache_entry *parent, const char *name, int namelen, uint32_t n);
-struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, int namelen);
+struct decache_entry *decache_walk(struct decache_entry *parent, const char *name, uint64_t namelen);
 int decache_init_root(uint32_t n);
 void decache_free(struct decache_entry *entry);
 struct decache_entry *decache_find(const char **path);
@@ -52,7 +52,7 @@ int cache_init();
  * @param inode_idx
  */
 void dcache_init(struct ext4_inode *inode, uint32_t inode_idx);
-void dcache_update(struct ext4_inode *inode, uint32_t lblock);
+void dcache_load_lblock(struct ext4_inode *inode, uint32_t lblock);
 int dcache_write_back();
 
 #define ICACHE_MAX_COUNT 64

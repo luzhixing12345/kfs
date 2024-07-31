@@ -22,7 +22,7 @@
 #include "ops.h"
 
 static int get_link_dest(struct ext4_inode *inode, char *buf, size_t bufsize) {
-    uint64_t inode_size = EXT4_INODE_SIZE(inode);
+    uint64_t inode_size = EXT4_INODE_GET_SIZE(inode);
 
     // a small perf for symbolic links
     // if the link destination fits in the inode, we copy it directly

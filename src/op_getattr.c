@@ -46,7 +46,7 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
 
     stbuf->st_mode = inode->i_mode & ~umask_val;
     stbuf->st_nlink = inode->i_links_count;
-    stbuf->st_size = EXT4_INODE_SIZE(inode);
+    stbuf->st_size = EXT4_INODE_GET_SIZE(inode);
     // The 'st_ino' field is ignored except if the 'use_ino' mount option is given
     stbuf->st_ino = inode_idx;
 
@@ -60,8 +60,8 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
     } else {
         stbuf->st_blocks = inode->i_blocks_lo + (((uint64_t)inode->osd2.linux2.l_i_blocks_high) << 32);
     }
-    stbuf->st_uid = EXT4_INODE_UID(inode);
-    stbuf->st_gid = EXT4_INODE_GID(inode);
+    stbuf->st_uid = EXT4_INODE_GET_UID(inode);
+    stbuf->st_gid = EXT4_INODE_GET_GID(inode);
     stbuf->st_atime = inode->i_atime;
     stbuf->st_mtime = inode->i_mtime;
     stbuf->st_ctime = inode->i_ctime;

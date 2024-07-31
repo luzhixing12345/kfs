@@ -19,11 +19,17 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_id
     uint64_t lblock = offset / BLOCK_SIZE;
     uint64_t blk_offset = offset % BLOCK_SIZE;
 
-    uint64_t inode_size = EXT4_INODE_SIZE(inode);
+    uint64_t inode_size = EXT4_INODE_GET_SIZE(inode);
     // DEBUG("offset %lu, lblock %u, blk_offset %u, inode_size %lu", offset, lblock, blk_offset, inode_size);
     ASSERT(inode_size >= offset);
     // if the offset is at the end of the inode, return NULL
     if (inode_size == offset) {
+        DEBUG("reach block boundary at offset %lu", offset);
+        if (EXT4_INODE_GET_BLOCKS(inode) * BLOCK_SIZE > inode_size) {
+            EXT4_INODE_SET_SIZE(inode, inode_size + BLOCK_SIZE);
+            DEBUG("increase inode size to %lu", inode_size + BLOCK_SIZE);
+        }
+        DEBUG("inode space not enough")
         return NULL;
     }
 
@@ -33,7 +39,7 @@ struct ext4_dir_entry_2 *dentry_next(struct ext4_inode *inode, uint32_t inode_id
         return (struct ext4_dir_entry_2 *)&dcache->buf[blk_offset];
     } else {
         DEBUG("dctx lblock %u not match lblock %u, update", dcache->lblock, lblock);
-        dcache_update(inode, lblock);
+        dcache_load_lblock(inode, lblock);
         return dentry_next(inode, inode_idx, offset);
     }
 }
@@ -124,12 +130,21 @@ int dentry_delete(struct ext4_inode *inode, uint32_t inode_idx, char *name) {
     return 0;
 }
 
-int dentry_has_enough_space(struct ext4_dir_entry_2 *de, const char *name) {
-    __le16 rec_len = DE_CALC_REC_LEN(strlen(name));
+/**
+ * @brief
+ *
+ * @param de
+ * @param name_len
+ * @return int
+ * -ENOSPC: no space
+ */
+int dentry_has_enough_space(struct ext4_dir_entry_2 *de, uint64_t name_len) {
+    __le16 rec_len = DE_CALC_REC_LEN(name_len);
     __le16 left_space = de->rec_len - DE_REAL_REC_LEN(de);
-    INFO("for new de %s: require space %u | left space %u", name, rec_len, left_space);
+    INFO("require space %u | left space %u", rec_len, left_space);
     if (left_space < rec_len) {
-        ERR("No space for new dentry");
+        // TODO: +sizeof(tail) check if len is enough
+        WARNING("No space for new dentry in de[%s]", de->name);
         return -ENOSPC;
     }
     INFO("space for new dentry is enough");
