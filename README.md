@@ -2,14 +2,12 @@
 
 ![badge.svg](https://github.com/luzhixing12345/kfs/actions/workflows/main.yaml/badge.svg)
 
-设计实现一个Linux内核模块,此模块完成如下功能
+kfs 是一个基于 FUSE 的类 ext4 文件系统, 同时可以利用 Virtio(vhost-user) 协议实现虚拟机(VM)和宿主机之间高效共享文件系统. 本项目共包含四个部分
 
-- [x] 将新创建的文件系统的操作接口和VFS对接.
-- [x] 实现新的文件系统的超级块、dentry、inode的读写操作.
-- [x] 实现新的文件系统的权限属性,不同的用户不同的操作属性.
-- [x] 实现和用户态程序的对接,用户程序
-- [x] 设计实现一个用户态应用程序,可以将一个块设备(可以用文件模拟)格式化成自己设计的文件系统的格式.
-- [x] 设计一个用户态的测试用例应用程序,测试验证自己的文件系统的open/read/write/ls/cd 等通常文件系统的访问.
+- `kfs`: 文件系统, 可以挂载磁盘镜像并映射文件系统
+- `mkfs`: 磁盘格式化工具, 可以将磁盘/文件格式化为 kfs 文件系统需要的格式
+- `kfsd`: 通过 Virtio(vhost-user) 协议实现虚拟机(VM)和宿主机之间通信, 将 VM 请求转发至 host 文件系统处理
+- `kfsctl`: 命令行交互工具, 可以查看挂载的文件系统状态, 快照, 恢复, 磁盘碎片整理等操作
 
 ## 编译运行
 
@@ -19,7 +17,7 @@
 sudo apt-get install fuse3 libfuse3-dev pkg-config libcap-ng-dev libseccomp-dev
 ```
 
-编译得到文件系统 `src/kfs` 和磁盘格式化程序 `mkfs/mkfs`
+编译得到文件系统 `src/kfs` 和磁盘格式化程序 `mkfs/mkfs` 和命令行交互工具 `kfsctl/kfsctl`
 
 ```bash
 make
@@ -63,7 +61,7 @@ make debug_run
 make run && make test
 ```
 
-## TODO
+<!-- ## TODO
 
 - [ ] 完善测试
 - [ ] ext4 日志
@@ -75,8 +73,7 @@ make run && make test
 - [ ] 校验和
 - [ ] 重复数据删除
 - [ ] 压缩
-- [ ] 延迟分配
-- [ ] 学习索引(learning index)
+- [ ] 延迟分配 -->
 
 ## 文档
 

@@ -1,4 +1,14 @@
 
+/*
+ *Copyright (c) 2024 All rights reserved
+ *@description: Terminal control program for kfs
+ *@author: Zhixing Lu
+ *@date: 2024-07-30
+ *@email: luzhixing12345@163.com
+ *@Github: luzhixing12345
+*/
+
+
 #include "xbox/xargparse.h"
 
 int main(int argc, const char **argv) {
@@ -20,9 +30,9 @@ int main(int argc, const char **argv) {
     XBOX_argparse parser;
     XBOX_argparse_init(&parser, options, 0);
     XBOX_argparse_describe(&parser,
-                           "main",
-                           "\nA brief description of what the program does and how it works.",
-                           "\nAdditional description of the program after the description of the arguments.");
+                           "kfsctl",
+                           "\nTerminal control program for kfs",
+                           "Documentation: https://github.com/luzhixing12345/kfs/kfsctl/README.md\n");
     XBOX_argparse_parse(&parser, argc, argv);
     if (XBOX_ismatch(&parser, "help")) {
         XBOX_argparse_info(&parser);

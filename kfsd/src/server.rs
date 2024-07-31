@@ -1575,6 +1575,7 @@ fn reply_ok<T: ByteValued>(
     };
 
     debug!("Replying OK, header: {:?}", header);
+    debug!("Replying OK, data: {:?}", data);
 
     w.write_all(header.as_slice())
         .map_err(Error::EncodeMessage)?;
