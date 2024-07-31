@@ -46,7 +46,7 @@ static struct fuse_operations e4f_ops = {
 
 查找 inode 时首先会从 decache 中查找, 如果找不到再依次深入目录遍历目录项, 如果找到了则会将目录项加入到 decache 当中方便下次查找
 
-```c
+```c{8}
 uint32_t inode_get_idx_by_path(const char *path) {
     uint32_t inode_idx = 0;
     struct ext4_inode *inode;
@@ -120,7 +120,7 @@ uint32_t inode_get_idx_by_path(const char *path) {
 
 通过 inode_idx 查找 inode 会首先从 icache 中查找, 找不到的话再从磁盘中读取, 并加入 icache 中缓存
 
-```c
+```c{7,14}
 int inode_get_by_number(uint32_t inode_idx, struct ext4_inode **inode) {
     if (inode_idx == 0) {
         return -ENOENT;
