@@ -110,7 +110,7 @@ debug_run:
 	@$(SRC_PATH)/$(TARGET) $(DISK_IMG) $(TMP_PATH) -d -o logfile=$(LOG_FILE)
 
 um:
-	umount $(TMP_PATH)
+	umount -l $(TMP_PATH)
 
 mkfs: $(MKFS_SRC_PATH)/$(MKFS)
 
@@ -140,10 +140,7 @@ test:
 	@$(MAKE) um > /dev/null
 
 clean:
-	rm -f $(OBJ) $(SRC_PATH)/$(TARGET)
-
-distclean:
-	rm -f $(OBJ) $(MKFS_OBJ) $(MKFS_SRC_PATH)/$(MKFS)
+	rm -f $(OBJ) $(MKFS_OBJ) $(SRC_PATH)/$(TARGET) $(MKFS_SRC_PATH)/$(MKFS)
 	$(MAKE) -C $(KFSCTL_SRC_PATH) clean
 
 release:

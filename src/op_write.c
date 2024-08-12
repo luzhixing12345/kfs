@@ -3,6 +3,7 @@
 
 #include "bitmap.h"
 #include "cache.h"
+#include "ctl.h"
 #include "disk.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_inode.h"
@@ -32,6 +33,11 @@ int op_write(const char *path, const char *buf, size_t size, off_t offset, struc
         DEBUG("fail to get inode %s", path);
         return -ENOENT;
     }
+
+    // if (ctl_check(inode_idx)) {
+    //     ctl_write(buf, offset / CTL_OFFSET_CONSTANT);
+    //     return size;
+    // }
 
     // check permissions
     if (inode_check_permission(inode, WRITE) < 0) {

@@ -19,6 +19,8 @@
 #include "ops.h"
 #include "ctl.h"
 
+extern bool enable_ctl;
+
 /** Get file attributes.
  *
  * Similar to stat().  The 'st_dev' and 'st_blksize' fields are
@@ -32,6 +34,10 @@
  */
 int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
     DEBUG("getattr(%s)", path);
+
+    if (ctl_check(path)) {
+        return op_getattr("/.kfsctl", stbuf, fi);
+    }
     
     struct ext4_inode *inode;
     uint32_t inode_idx;

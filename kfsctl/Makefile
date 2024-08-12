@@ -11,19 +11,16 @@ LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))
 CSTD = -std=gnu2x
 CFLAGS = $(CSTD)
 CFLAGS += -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
-CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
+CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral -g
 
 CFLAGS += -I../src
 
 rwildcard = $(foreach d, $(wildcard $1*), $(call rwildcard,$d/,$2) \
 						$(filter $2, $d))
 
-SRC := $(shell find . -name '*.c') $(shell find ../src -name '*.c')
-# exclude main.c
-SRC := $(filter-out ../src/main.c,$(SRC))
+SRC := $(shell find . -name '*.c')
 OBJ = $(SRC:.c=.o)
 all: $(TARGET)
-
 
 $(TARGET): $(OBJ)
 	$(CC) $^ $(LDFLAGS) -o $@

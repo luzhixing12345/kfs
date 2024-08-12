@@ -198,6 +198,7 @@ int main(int argc, char **argv) {
     //       inode 1 and inode 2 is necessary, we don't care about others for now
     SET_BIT1(tmp_mem_area, 0, 1);  // inode 1 for bad block(don't exsist)
     SET_BIT1(tmp_mem_area, 1, 1);  // inode 2 for root block
+    SET_BIT1(tmp_mem_area, 2, 1);  // inode 3 for kfsctl block
     INFO("write back inode bitmap to disk");
     disk_write(BLOCKS2BYTES(i_bitmap_start), 2, tmp_mem_area);
 
@@ -234,8 +235,8 @@ int main(int argc, char **argv) {
                MKFS_EXT4_INODE_SIZE,
                tmp_mem_area);
 
-    inode_create(EXT4_USR_QUOTA_INO, S_IFREG | mode, data_block_start + EXT4_INODE_PBLOCK_NUM, inode);
-    disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_USR_QUOTA_INO - 1) * MKFS_EXT4_INODE_SIZE,
+    inode_create(EXT4_KFSCTL_INO, S_IFREG | mode, data_block_start + EXT4_INODE_PBLOCK_NUM, inode);
+    disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_KFSCTL_INO - 1) * MKFS_EXT4_INODE_SIZE,
                MKFS_EXT4_INODE_SIZE,
                tmp_mem_area);
 
@@ -269,7 +270,7 @@ int main(int argc, char **argv) {
 
     // .kfsctl
     struct ext4_dir_entry_2 *de_kfsctl = (struct ext4_dir_entry_2 *)(tmp_mem_area + EXT4_DE_DOT_SIZE * 2);
-    de_kfsctl->inode_idx = EXT4_USR_QUOTA_INO;
+    de_kfsctl->inode_idx = EXT4_KFSCTL_INO;
     de_kfsctl->rec_len = BLOCK_SIZE - EXT4_DE_DOT_SIZE * 2 - EXT4_DE_TAIL_SIZE;
     de_kfsctl->name_len = strlen(KFSCTL_PATH);
     de_kfsctl->file_type = EXT4_FT_REG_FILE;

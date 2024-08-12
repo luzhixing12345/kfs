@@ -72,30 +72,6 @@ int main(int argc, const char *argv[]) {
 
     rc = vu_init(&dev, max_queues, socket, panic, NULL, set_watch, remove_watch, &iface);
     assert(rc == true);
-    int client_fd = accept(socket, NULL, NULL);
-    if (client_fd < 0) {
-        perror("accept");
-        close(socket);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Client connected.\n");
-
-    // 在这里处理来自 QEMU 的消息,例子中简单处理
-    char buffer[1024];
-    ssize_t bytes;
-    while ((bytes = read(client_fd, buffer, sizeof(buffer))) > 0) {
-        printf("Received: %.*s\n", (int)bytes, buffer);
-    }
-
-    if (bytes < 0) {
-        perror("read");
-    }
-
-    close(client_fd);
-
     vu_deinit(&dev);
-    close(socket);
-    unlink(socket_path);
     return 0;
 }

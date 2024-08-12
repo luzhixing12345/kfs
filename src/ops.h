@@ -32,6 +32,7 @@ int op_statfs(const char *path, struct statvfs *stbuf);
 int op_fsync(const char *path, int isdatasync, struct fuse_file_info *fi);
 int op_lock(const char *path, struct fuse_file_info *fi, int cmd, struct flock *lock);
 off_t op_lseek(const char *, off_t off, int whence, struct fuse_file_info *);
+int op_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi, unsigned int flags, void *data);
 
 // in op_unlink.c
 int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx);

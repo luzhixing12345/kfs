@@ -16,6 +16,7 @@ impl:
 - mkfs: 1
 - design: 2
 - kfsd: 3
+- kfsctl: 4
 device:
 - io: 1
 - disk: 2
