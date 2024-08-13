@@ -5,7 +5,7 @@ CC = gcc
 TARGET = kfs
 SRC_PATH = src
 SRC_EXT = c
-THIRD_LIB = fuse3
+THIRD_LIB = fuse3 zlib
 
 CSTD = -std=gnu2x
 CFLAGS = $(CSTD)

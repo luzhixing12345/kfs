@@ -18,7 +18,7 @@ kfs 是一个基于 FUSE 的类 ext4 文件系统, 同时可以利用 Virtio(vho
 安装依赖
 
 ```bash
-sudo apt-get install fuse3 libfuse3-dev pkg-config libcap-ng-dev libseccomp-dev
+sudo apt-get install fuse3 libfuse3-dev pkg-config libcap-ng-dev libseccomp-dev libz-dev
 ```
 
 编译得到文件系统 `src/kfs` 和磁盘格式化程序 `mkfs/mkfs` 和命令行交互工具 `kfsctl/kfsctl`

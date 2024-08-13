@@ -17,14 +17,10 @@
 #include "inode.h"
 #include "logging.h"
 
-extern bool enable_ctl;
-
 int op_open(const char *path, struct fuse_file_info *fi) {
     DEBUG("open %s with flags %o", path, fi->flags);
 
     if (ctl_check(path)) {
-        enable_ctl = 1;
-        DEBUG("enable ctl");
         return op_open("/.kfsctl", fi);
     }
 

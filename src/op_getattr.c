@@ -19,8 +19,6 @@
 #include "ops.h"
 #include "ctl.h"
 
-extern bool enable_ctl;
-
 /** Get file attributes.
  *
  * Similar to stat().  The 'st_dev' and 'st_blksize' fields are

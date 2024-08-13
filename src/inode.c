@@ -405,5 +405,6 @@ int inode_init_pblock(struct ext4_inode *inode, uint64_t pblock_idx) {
 
     EXT4_INODE_SET_BLOCKS(inode, EXT4_INODE_PBLOCK_NUM);
     ICACHE_SET_DIRTY(inode);
+    bitmap_pblock_set(pblock_idx, EXT4_INODE_PBLOCK_NUM, 1);
     return 0;
 }

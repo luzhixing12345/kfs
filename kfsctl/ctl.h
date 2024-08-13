@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <errno.h>
 
 #define CTL_OFFSET_CONSTANT 4096
 

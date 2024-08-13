@@ -1,4 +1,6 @@
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 
 #include "bitmap.h"
@@ -24,23 +26,35 @@
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     DEBUG("write path %s with size %d offset %d", path, size, offset);
 
-    ASSERT(offset >= 0);
-    ASSERT(fi->fh > 0);
+    if (offset != 0 && (ctl_check(path) || strcmp(path, "/.kfsctl") == 0)) {
+        char result[1024];
+        const char *last_slash = strrchr(path, '/');
+        size_t length = last_slash - path;
+        strncpy(result, path, length);
+        result[length] = '\0';
+        snprintf(result + length, sizeof(result) - length, "/%s", buf);
+        DEBUG("ctl path: %s", result);
+        ctl_write(result, offset / CTL_OFFSET_CONSTANT);
+        return size;
+    }
 
     int ret = 0;
     size_t remain = size;
 
     struct ext4_inode *inode;
     uint32_t inode_idx;
-    if (inode_get_by_path(path, &inode, &inode_idx) < 0) {
-        DEBUG("fail to get inode %s", path);
-        return -ENOENT;
-    }
 
-    // if (ctl_check(inode_idx)) {
-    //     ctl_write(buf, offset / CTL_OFFSET_CONSTANT);
-    //     return size;
-    // }
+    if (fi && fi->fh > 0) {
+        if (inode_get_by_number(fi->fh, &inode) < 0) {
+            DEBUG("fail to get inode %d", fi->fh);
+            return -ENOENT;
+        }
+    } else {
+        if (inode_get_by_path(path, &inode, &inode_idx) < 0) {
+            DEBUG("fail to get inode %s", path);
+            return -ENOENT;
+        }
+    }
 
     // check permissions
     if (inode_check_permission(inode, WRITE) < 0) {

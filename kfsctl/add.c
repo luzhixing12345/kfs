@@ -1,6 +1,9 @@
+#include <asm-generic/errno-base.h>
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "cmd.h"
 #include "ctl.h"
 
@@ -16,9 +19,20 @@ int add_main(int argc, const char **argv) {
     }
 
     const char *filename = argv[1];
-    ctl_cmd(CMD_ADD, filename);
+    
+    // check if the file exists
+    if (access(filename, F_OK) != 0) {
+        printf("%s doesn't exist\n", filename);
+        goto end;
+    }
+
+    if (ctl_cmd(CMD_ADD, filename) < 0) {
+        assert(0);
+    }
+
     printf("add %s success\n", filename);
 
+end:
     ctl_destroy();
     return 0;
 }

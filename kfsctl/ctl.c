@@ -34,18 +34,11 @@ int ctl_cmd(enum kfs_cmd cmd, const char *filename) {
     static char buf[1024];
 
     if (filename) {
-        if (pwrite(kfsctl_fd, filename, strlen(filename), CTL_OFFSET_CONSTANT * cmd) < 0) {
-            perror("write");
-            return -1;
-        }
+        return pwrite(kfsctl_fd, filename, strlen(filename), CTL_OFFSET_CONSTANT * cmd);
     } else {
         int ret = pread(kfsctl_fd, buf, sizeof(buf), CTL_OFFSET_CONSTANT * cmd);
-        if (ret < 0) {
-            perror("read");
-            return -1;
-        }
         buf[ret] = '\0';
         printf("%s\n", buf);
+        return ret;
     }
-    return 0;
 }
