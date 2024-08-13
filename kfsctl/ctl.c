@@ -33,8 +33,6 @@ int ctl_destroy() {
 int ctl_cmd(enum kfs_cmd cmd, const char *filename) {
     static char buf[1024];
 
-    // ioctl(kfsctl_fd, cmd, filename, buf);
-
     if (filename) {
         if (pwrite(kfsctl_fd, filename, strlen(filename), CTL_OFFSET_CONSTANT * cmd) < 0) {
             perror("write");

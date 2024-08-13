@@ -13,6 +13,11 @@ int status_main(int argc, const char **argv) {
     }
 
     printf("FileSystem status:\n");
+
+    if (ctl_cmd(CMD_STATUS, NULL) < 0) {
+        return -1;
+    }
+
     ctl_destroy();
     return 0;
 }

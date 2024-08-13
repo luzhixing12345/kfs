@@ -100,14 +100,15 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
     ASSERT(fi->fh > 0);
 
     DEBUG("read %s with offset %lu and size %lu", path, offset, size);
+
+    if (ctl_check(path) || !strcmp(path, "/.kfsctl")) {
+        return ctl_read(buf, offset / CTL_OFFSET_CONSTANT);
+    }
+
     if (inode_get_by_number(fi->fh, &inode) < 0) {
         DEBUG("fail to get inode %d", fi->fh);
         return -ENOENT;
     }
-
-    // if (ctl_check(fi->fh) && offset != 0) {
-    //     return ctl_read(buf, offset / CTL_OFFSET_CONSTANT);
-    // }
 
     // Truncate the read size if it exceeds the limits of the file.
     size = truncate_size(inode, size, un_offset);

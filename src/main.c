@@ -62,6 +62,7 @@ static struct fuse_operations e4f_ops = {
     .lock = op_lock,
     .lseek = op_lseek,
     .ioctl = op_ioctl,
+    .release = op_release,
 };
 
 static struct e4f {

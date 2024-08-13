@@ -24,6 +24,9 @@
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     DEBUG("write path %s with size %d offset %d", path, size, offset);
 
+    ASSERT(offset >= 0);
+    ASSERT(fi->fh > 0);
+
     int ret = 0;
     size_t remain = size;
 

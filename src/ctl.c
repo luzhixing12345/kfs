@@ -86,25 +86,25 @@ int ctl_status(char *buf) {
     return buf_cnt;
 }
 
-// int ctl_read(char *buf, enum kfs_cmd cmd) {
-//     switch (cmd) {
-//         case CMD_STATUS:
-//             return ctl_status(buf);
-//         case CMD_LOG:
-//             return ctl_log(buf);
-//         default:;
-//     }
-//     assert(0);
-//     return 0;
-// }
+int ctl_read(char *buf, enum kfs_cmd cmd) {
+    switch (cmd) {
+        case CMD_STATUS:
+            return ctl_status(buf);
+        case CMD_LOG:
+            return ctl_log(buf);
+        default:;
+    }
+    assert(0);
+    return 0;
+}
 
-// int ctl_write(const char *filename, enum kfs_cmd cmd) {
-//     switch (cmd) {
-//         case CMD_ADD:
-//             return ctl_add(filename);
-//         default:
-//             return -1;
-//     }
-//     assert(0);
-//     return 0;
-// }
+int ctl_write(const char *filename, enum kfs_cmd cmd) {
+    switch (cmd) {
+        case CMD_ADD:
+            return ctl_add(filename);
+        default:
+            return -1;
+    }
+    assert(0);
+    return 0;
+}
