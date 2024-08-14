@@ -12,7 +12,7 @@ CFLAGS = $(CSTD)
 CFLAGS += -Wall -Wunused -Werror -Wformat-security -Wshadow -Wpedantic -Wstrict-aliasing -Wuninitialized -Wnull-dereference -Wformat=2
 
 # 使用 GNU C 扩展语法, __FILE__ 和 __LINE__ 变量
-CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral
+CFLAGS += -Wno-error=pedantic -Wno-pedantic -Wno-format-nonliteral -Wno-error=unused-result
 
 CFLAGS += $(shell pkg-config --cflags $(THIRD_LIB))
 LDFLAGS += $(shell pkg-config --libs $(THIRD_LIB))

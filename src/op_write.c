@@ -26,17 +26,17 @@
 int op_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
     DEBUG("write path %s with size %d offset %d", path, size, offset);
 
-    if (offset != 0 && (ctl_check(path) || strcmp(path, "/.kfsctl") == 0)) {
-        char result[1024];
-        const char *last_slash = strrchr(path, '/');
-        size_t length = last_slash - path;
-        strncpy(result, path, length);
-        result[length] = '\0';
-        snprintf(result + length, sizeof(result) - length, "/%s", buf);
-        DEBUG("ctl path: %s", result);
-        ctl_write(result, offset / CTL_OFFSET_CONSTANT);
-        return size;
-    }
+    // if (offset != 0 && (ctl_check(path) || strcmp(path, "/.kfsctl") == 0)) {
+    //     char result[1024];
+    //     const char *last_slash = strrchr(path, '/');
+    //     size_t length = last_slash - path;
+    //     strncpy(result, path, length);
+    //     result[length] = '\0';
+    //     snprintf(result + length, sizeof(result) - length, "/%s", buf);
+    //     DEBUG("ctl path: %s", result);
+    //     ctl_write(result, offset / CTL_OFFSET_CONSTANT);
+    //     return size;
+    // }
 
     int ret = 0;
     size_t remain = size;

@@ -27,6 +27,7 @@ int add_main(int argc, const char **argv) {
     }
 
     if (ctl_cmd(CMD_ADD, filename) < 0) {
+        printf("errno: %d\n", errno);
         assert(0);
     }
 

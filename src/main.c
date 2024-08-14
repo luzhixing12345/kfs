@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -26,6 +27,7 @@
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
+#include "ctl.h"
 
 #ifndef EXT4FUSE_VERSION
 #define EXT4FUSE_VERSION "v0.0.1"
@@ -155,7 +157,17 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    pthread_t thread_id;
+    // Create a thread for network listening
+    if (pthread_create(&thread_id, NULL, ctl_init, NULL) != 0) {
+        perror("Failed to create thread");
+        return 1;
+    }
+
     res = fuse_main(args.argc, args.argv, &e4f_ops, NULL);
+
+    pthread_detach(thread_id);
+    pthread_join(thread_id, NULL);
 
     fuse_opt_free_args(&args);
     free(e4f.disk);

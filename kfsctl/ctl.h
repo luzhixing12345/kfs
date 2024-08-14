@@ -1,16 +1,22 @@
 
-#include <stdint.h>
 #include <errno.h>
+#include <stdint.h>
+#include <pthread.h>
 
-#define CTL_OFFSET_CONSTANT 4096
+enum kfs_cmd { CMD_STATUS = 1, CMD_LOG, CMD_ADD };
 
-enum kfs_cmd { CMD_STATUS = 1, CMD_ADD, CMD_LOG };
+struct Request {
+    enum kfs_cmd cmd;
+    char filename[256];
+};
+
+struct Response {
+    int need_print;
+    char msg[1024];
+};
 
 int ctl_init();
+void * ctl_init_thread(void *arg);
 int ctl_destroy();
 
-int ctl_read(char *buf, enum kfs_cmd cmd);
-int ctl_write(const char *filename, enum kfs_cmd cmd);
 int ctl_cmd(enum kfs_cmd cmd, const char *filename);
-int ctl_add(const char *filename);
-

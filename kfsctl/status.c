@@ -1,11 +1,10 @@
 
+#include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #include "cmd.h"
 #include "ctl.h"
-
-extern int kfsctl_fd;
 
 int status_main(int argc, const char **argv) {
     if (ctl_init() < 0) {

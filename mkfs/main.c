@@ -18,6 +18,7 @@
 #include "ext4/ext4_inode.h"
 #include "ext4/ext4_super.h"
 #include "logging.h"
+#include "ctl.h"
 
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
@@ -38,8 +39,8 @@ int inode_create(uint32_t inode_idx, mode_t mode, uint64_t pblock, struct ext4_i
     inode->i_links_count = mode & S_IFDIR ? 2 : 1;
 
     // new created inode has 0 block and 0 size
-    EXT4_INODE_SET_BLOCKS(inode, 0);
-    uint64_t inode_size = mode & S_IFDIR ? BLOCK_SIZE : EXT4_INODE_PBLOCK_NUM * BLOCK_SIZE;
+    EXT4_INODE_SET_BLOCKS(inode, EXT4_INODE_PBLOCK_NUM);
+    uint64_t inode_size = mode & S_IFDIR ? BLOCK_SIZE : 0;
     EXT4_INODE_SET_SIZE(inode, inode_size);
 
     // enable ext4 extents flag
@@ -235,10 +236,22 @@ int main(int argc, char **argv) {
                MKFS_EXT4_INODE_SIZE,
                tmp_mem_area);
 
+
     inode_create(EXT4_KFSCTL_INO, S_IFREG | mode, data_block_start + EXT4_INODE_PBLOCK_NUM, inode);
+    EXT4_INODE_SET_SIZE(inode, EXT4_INODE_PBLOCK_NUM * BLOCK_SIZE);
+    
     disk_write(BLOCKS2BYTES(inode_table_start) + (EXT4_KFSCTL_INO - 1) * MKFS_EXT4_INODE_SIZE,
                MKFS_EXT4_INODE_SIZE,
                tmp_mem_area);
+
+    // init kfsctl CacheHeader
+    struct CacheHeader *ch = (struct CacheHeader *)tmp_mem_area;
+    ch->signature = CACHE_SIGNATURE;
+    ch->version = CACHE_VERSION;
+    ch->entries = 0;
+    disk_write_block(data_block_start + EXT4_INODE_PBLOCK_NUM, tmp_mem_area);
+    INFO("init kfsctl CacheHeader done");
+    INFO("finish kfsctl inode and dentry creation");
 
     // create dentry
     INFO("create root dentry");
@@ -280,6 +293,9 @@ int main(int argc, char **argv) {
     INFO("create root dentry done");
     disk_write_block(data_block_start, tmp_mem_area);
     INFO("write back root dentry to disk");
+
+    
+
 
     free(tmp_mem_area);
     free(gdt);
