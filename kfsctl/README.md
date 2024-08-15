@@ -10,7 +10,6 @@ Sub commands:
         status:         check fs status
         add             make snapshot for a file
         log             show a file's snapshot log
-        defrag          defrag disk space
         restore         restore a file to a snapshot
 
   -h   --help      show help information

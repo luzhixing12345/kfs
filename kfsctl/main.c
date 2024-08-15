@@ -29,8 +29,7 @@ int main(int argc, const char **argv) {
     XBOX_argparse_describe(&parser,
                            "kfsctl",
                            "\nTerminal control program for kfs.\n\nSub commands:\n\tstatus: \tcheck fs status"
-                           "\n\tadd \t\tmake snapshot for a file\n\tlog \t\tshow a file's snapshot log\n\tdefrag "
-                           "\t\tdefrag disk space\n\trestore \trestore a file to a snapshot",
+                           "\n\tadd \t\tmake snapshot for a file\n\tlog \t\tshow a file's snapshot log\n\trestore \trestore a file to a snapshot",
                            "Documentation: https://github.com/luzhixing12345/kfs/kfsctl/README.md\n");
     XBOX_argparse_parse(&parser, argc, argv);
 
@@ -38,7 +37,6 @@ int main(int argc, const char **argv) {
         {"add", add_main},
         {"status", status_main},
         {"log", log_main},
-        {"defrag", defrag_main},
         {"restore", restore_main},
     };
 
