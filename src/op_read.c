@@ -66,7 +66,11 @@ static size_t first_read(struct ext4_inode *inode, char *buf, size_t size, off_t
     uint32_t start_block_off = offset % BLOCK_SIZE;
 
     uint64_t start_pblock = inode_get_data_pblock(inode, start_lblock, NULL);
-    DEBUG("start_lblock %u, end_lblock %u, start_block_off %u, start_pblock %lu", start_lblock, end_lblock, start_block_off, start_pblock);
+    DEBUG("start_lblock %u, end_lblock %u, start_block_off %u, start_pblock %lu",
+          start_lblock,
+          end_lblock,
+          start_block_off,
+          start_pblock);
 
     if (start_lblock == end_lblock) {
         // only one block to read, finished
@@ -102,8 +106,9 @@ int op_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 
     DEBUG("read %s with offset %lu and size %lu", path, offset, size);
 
-    // if (offset != 0 && (ctl_check(path) || !strcmp(path, "/.kfsctl"))) {
-    //     ctl_read(buf, offset / CTL_OFFSET_CONSTANT);
+    // if (offset != 0 && (ctl_check(path) || strcmp(path, "/.kfsctl") == 0)) {
+    //     memcpy(buf, path, size);
+    //     buf[strlen(path)] = 0;
     //     return size;
     // }
 

@@ -5,12 +5,14 @@
 #include <fcntl.h>
 #include <stdint.h>
 
-enum kfs_cmd { CMD_STATUS = 1, CMD_LOG, CMD_ADD };
+enum kfs_cmd { CMD_STATUS = 1, CMD_LOG, CMD_ADD, CMD_RESTORE };
 
 struct Request {
     enum kfs_cmd cmd;
     char filename[256];
+    int data;
 };
+
 
 struct Response {
     int need_print;
@@ -34,6 +36,8 @@ struct CacheEntry {
     char filename[256];
     uint32_t count;
     uint32_t inode_idx[MAX_ENTRIES];
+    // create time
+    struct timespec timestamp[MAX_ENTRIES];
 };
 
 void* ctl_init(void *arg);

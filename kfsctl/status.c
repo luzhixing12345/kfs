@@ -1,5 +1,4 @@
 
-#include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -13,7 +12,7 @@ int status_main(int argc, const char **argv) {
 
     printf("FileSystem status:\n");
 
-    if (ctl_cmd(CMD_STATUS, NULL) < 0) {
+    if (ctl_cmd(CMD_STATUS, NULL, -1) < 0) {
         return -1;
     }
 

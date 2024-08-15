@@ -1,4 +1,6 @@
 
+
+#include <pthread.h>
 #include <stdlib.h>
 
 #include "bitmap.h"
@@ -16,6 +18,7 @@ extern struct icache *icache;
 extern struct bitmap i_bitmap;
 extern struct bitmap d_bitmap;
 extern struct decache_entry *root;
+extern pthread_t socket_thread_id;
 
 void op_destory(void *data) {
     DEBUG("ext4 fuse fs destory");
@@ -68,5 +71,8 @@ void op_destory(void *data) {
     disk_write(BOOT_SECTOR_SIZE, sizeof(struct ext4_super_block), &sb);
     INFO("write back super block done");
     INFO("ext4 fuse fs destory done");
+
+    pthread_cancel(socket_thread_id);
+    pthread_join(socket_thread_id, NULL);
     disk_close();
 }

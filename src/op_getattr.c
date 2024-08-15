@@ -12,12 +12,12 @@
 #include <sys/types.h>
 
 #include "cache.h"
+#include "ctl.h"
 #include "ext4/ext4.h"
 #include "ext4/ext4_inode.h"
 #include "inode.h"
 #include "logging.h"
 #include "ops.h"
-#include "ctl.h"
 
 /** Get file attributes.
  *
@@ -36,7 +36,7 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
     if (ctl_check(path)) {
         return op_getattr("/.kfsctl", stbuf, fi);
     }
-    
+
     struct ext4_inode *inode;
     uint32_t inode_idx;
     memset(stbuf, 0, sizeof(struct stat));  // clear the struct
@@ -47,7 +47,7 @@ int op_getattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) 
 
     // get umask
     struct fuse_context *cntx = fuse_get_context();
-    mode_t umask_val = cntx->umask;
+    mode_t umask_val = cntx ? cntx->umask : 022;
 
     stbuf->st_mode = inode->i_mode & ~umask_val;
     stbuf->st_nlink = inode->i_links_count;

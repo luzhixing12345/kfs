@@ -35,7 +35,7 @@ int ctl_init() {
     }
 
     kfsctl_fd = client_socket;
-    printf("connected to server with fd %d\n", kfsctl_fd);
+    // printf("connected to server with fd %d\n", kfsctl_fd);
     return 0;
 }
 
@@ -46,14 +46,18 @@ int ctl_destroy() {
     return 0;
 }
 
-int ctl_cmd(enum kfs_cmd cmd, const char *filename) {
+int ctl_cmd(enum kfs_cmd cmd, const char *filename, int version) {
     assert(kfsctl_fd >= 0);
 
     struct Request req;
     req.cmd = cmd;
 
     if (filename) {
-        strcpy(req.filename, filename);
+        sprintf(req.filename, "/%s", filename);
+    }
+
+    if (version != -1) {
+        req.data = version;
     }
 
     if (write(kfsctl_fd, &req, sizeof(req)) < 0) {
@@ -66,8 +70,9 @@ int ctl_cmd(enum kfs_cmd cmd, const char *filename) {
         perror("read failed");
         return -1;
     }
+
     if (resp.need_print) {
-        printf("%s", resp.msg);    
+        printf("%s", resp.msg);
     }
     return 0;
 }

@@ -265,8 +265,8 @@ uint64_t inode_get_offset(uint32_t inode_idx) {
 int inode_check_permission(struct ext4_inode *inode, access_mode_t mode) {
     // UNIX permission check
     struct fuse_context *cntx = fuse_get_context();  //获取当前用户的上下文
-    uid_t uid = cntx->uid;
-    gid_t gid = cntx->gid;
+    uid_t uid = cntx ? cntx->uid : 0;
+    gid_t gid = cntx ? cntx->gid : 0;
     uid_t i_uid = EXT4_INODE_GET_UID(inode);
     gid_t i_gid = EXT4_INODE_GET_GID(inode);
     DEBUG("check inode & user permission on op mode %d", mode);
@@ -343,8 +343,10 @@ int inode_create(uint32_t inode_idx, mode_t mode, struct ext4_inode **inode) {
     time_t now = time(NULL);
     (*inode)->i_atime = (*inode)->i_ctime = (*inode)->i_mtime = now;
     struct fuse_context *cntx = fuse_get_context();
-    EXT4_INODE_SET_UID(*inode, cntx->uid);
-    EXT4_INODE_SET_GID(*inode, cntx->gid);
+    uid_t uid = cntx ? cntx->uid : 0;
+    gid_t gid = cntx ? cntx->gid : 0;
+    EXT4_INODE_SET_UID(*inode, uid);
+    EXT4_INODE_SET_GID(*inode, gid);
 
     // dir has 2 links and others have 1 link
     (*inode)->i_links_count = mode & S_IFDIR ? 2 : 1;

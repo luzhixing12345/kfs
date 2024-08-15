@@ -156,18 +156,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Magic number mismatch, partition doesn't contain EXT4 filesystem\n");
         return EXIT_FAILURE;
     }
-
-    pthread_t thread_id;
-    // Create a thread for network listening
-    if (pthread_create(&thread_id, NULL, ctl_init, NULL) != 0) {
-        perror("Failed to create thread");
-        return 1;
-    }
-
     res = fuse_main(args.argc, args.argv, &e4f_ops, NULL);
-
-    pthread_detach(thread_id);
-    pthread_join(thread_id, NULL);
 
     fuse_opt_free_args(&args);
     free(e4f.disk);

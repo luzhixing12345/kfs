@@ -1,5 +1,5 @@
 
-#include <pthread.h>
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -17,7 +17,7 @@ int log_main(int argc, const char **argv) {
         fprintf(stderr, "ctl init failed\n");
         return -1;
     }
-    ctl_cmd(CMD_LOG, NULL);
+    ctl_cmd(CMD_LOG, NULL, -1);
 
     ctl_destroy();
 

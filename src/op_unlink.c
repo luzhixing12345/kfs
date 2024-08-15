@@ -33,10 +33,10 @@ int unlink_inode(struct ext4_inode *inode, uint32_t inode_idx) {
         }
 
         // write back dirty inode
-        if (ICACHE_IS_DIRTY(inode)) {
-            INFO("write back dirty inode %d", inode_idx);
-            icache_write_back((struct icache_entry *)inode);
-        }
+        // if (ICACHE_IS_DIRTY(inode)) {
+        //     INFO("write back dirty inode %d", inode_idx);
+        //     icache_write_back((struct icache_entry *)inode);
+        // }
         ICACHE_SET_INVAL(inode);
     } else {
         ICACHE_SET_DIRTY(inode);

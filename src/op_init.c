@@ -10,7 +10,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
+#include "ctl.h"
 #include "bitmap.h"
 #include "cache.h"
 #include "disk.h"
@@ -25,6 +27,7 @@ unsigned fuse_capable;
 
 struct ext4_super_block sb;
 struct ext4_group_desc *gdt;
+pthread_t socket_thread_id;
 
 int sb_status(char *buf) {
     int buf_cnt = 0;
@@ -75,6 +78,16 @@ void *op_init(struct fuse_conn_info *info, struct fuse_config *cfg) {
     super_group_fill();  // group descriptors
     bitmap_init();
     cache_init();
+
+    
+    // Create a thread for network listening
+    if (pthread_create(&socket_thread_id, NULL, ctl_init, NULL) != 0) {
+        perror("Failed to create thread");
+        return NULL;
+    }
+
+    pthread_detach(socket_thread_id);
+    pthread_join(socket_thread_id, NULL);
 
     return NULL;
 }
